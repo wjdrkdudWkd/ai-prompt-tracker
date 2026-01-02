@@ -19,7 +19,7 @@ CREATE TABLE executions (
 
     -- Aggregated metrics from calls
     calls_count INTEGER DEFAULT 0,
-    total_cost DECIMAL(10, 6),
+    total_cost DOUBLE PRECISION,
     total_tokens BIGINT
 );
 
@@ -41,7 +41,7 @@ CREATE TABLE calls (
     completion_tokens INTEGER,
     total_tokens INTEGER,
 
-    cost DECIMAL(10, 6),
+    cost DOUBLE PRECISION,
     latency_ms BIGINT NOT NULL,
 
     status VARCHAR(20) NOT NULL,

@@ -96,7 +96,7 @@ public class ExecutionRecord {
     /**
      * Total cost across all calls (USD)
      */
-    @Column(name = "total_cost", precision = 10, scale = 6)
+    @Column(name = "total_cost")
     private Double totalCost;
 
     /**

@@ -72,7 +72,7 @@ public class CallRecord {
     /**
      * Estimated cost in USD
      */
-    @Column(name = "cost", precision = 10, scale = 6)
+    @Column(name = "cost")
     private Double cost;
 
     /**
