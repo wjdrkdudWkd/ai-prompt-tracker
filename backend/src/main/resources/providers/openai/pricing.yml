@@ -1,0 +1,28 @@
+models:
+  gpt-4:
+    prompt_token_price: 0.03
+    completion_token_price: 0.06
+    description: "GPT-4 8K context"
+
+  gpt-4-turbo:
+    prompt_token_price: 0.01
+    completion_token_price: 0.03
+    description: "GPT-4 Turbo with 128K context"
+
+  gpt-4-turbo-preview:
+    prompt_token_price: 0.01
+    completion_token_price: 0.03
+    description: "GPT-4 Turbo Preview"
+
+  gpt-3.5-turbo:
+    prompt_token_price: 0.0015
+    completion_token_price: 0.002
+    description: "GPT-3.5 Turbo"
+
+  gpt-3.5-turbo-16k:
+    prompt_token_price: 0.003
+    completion_token_price: 0.004
+    description: "GPT-3.5 Turbo 16K context"
+
+# Prices are per 1000 tokens in USD
+# Updated: 2024-01-01
