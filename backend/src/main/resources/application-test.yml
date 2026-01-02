@@ -13,6 +13,11 @@ spring:
       host: localhost
       port: 6379
 
+# Enable raw data storage in test
+ai-prompts:
+  tracking:
+    store-raw-data: true
+
 logging:
   level:
     com.galoong.aiprompttracker: DEBUG

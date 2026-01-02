@@ -11,6 +11,11 @@ spring:
     livereload:
       enabled: true
 
+# Enable raw data storage in development
+ai-prompts:
+  tracking:
+    store-raw-data: true
+
 logging:
   level:
     com.galoong.aiprompttracker: DEBUG

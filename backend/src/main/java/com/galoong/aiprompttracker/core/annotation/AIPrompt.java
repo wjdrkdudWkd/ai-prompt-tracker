@@ -6,18 +6,23 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * AI 함수 자동 추적을 위한 어노테이션
+ * AI Prompt execution tracking annotation
  *
- * 사용 예시:
+ * Automatically tracks method executions and AI API calls made within them.
+ * Works with any return type - does not force AIProviderResponse.
+ *
+ * Usage:
  * <pre>
  * {@code
  * @AIPrompt(
- *     provider = "OpenAI",
- *     model = "gpt-4",
- *     description = "고객 질문에 대한 답변 생성"
+ *     name = "extractWords",
+ *     description = "Extract Japanese words from subtitle",
+ *     category = "nlp"
  * )
- * public String answerQuestion(@PromptParam String question) {
- *     // ...
+ * public MyResult analyze(String subtitle) {
+ *     // Your code calls AI APIs using WebClient, RestTemplate, etc.
+ *     // All calls are automatically tracked!
+ *     return result;
  * }
  * }
  * </pre>
@@ -27,50 +32,25 @@ import java.lang.annotation.Target;
 public @interface AIPrompt {
 
     /**
-     * Provider 이름 (OpenAI, Anthropic, Google 등)
-     * 기본값: 자동 감지
+     * Function name (for identification in dashboard)
+     * If not specified, uses ClassName.methodName
      */
-    String provider() default "";
+    String name() default "";
 
     /**
-     * 사용할 모델명
-     * 예: "gpt-4", "claude-3-opus", "gemini-pro"
-     */
-    String model() default "";
-
-    /**
-     * 함수 설명 (Dashboard 표시용)
+     * Function description (for dashboard display)
      */
     String description() default "";
 
     /**
-     * 카테고리 (그룹핑용)
-     * 예: "customer-service", "content-generation"
+     * Category (for grouping functions)
+     * Example: "nlp", "content-generation", "customer-service"
      */
     String category() default "default";
 
     /**
-     * 비용 추적 활성화 여부
-     */
-    boolean trackCost() default true;
-
-    /**
-     * 성능 추적 활성화 여부
-     */
-    boolean trackPerformance() default true;
-
-    /**
-     * 캐싱 사용 여부
-     */
-    boolean useCache() default false;
-
-    /**
-     * 캐시 TTL (초)
-     */
-    int cacheTtl() default 3600;
-
-    /**
-     * 태그 (검색/필터링용)
+     * Tags (for search and filtering)
+     * Example: {"subtitle", "japanese", "wordextraction"}
      */
     String[] tags() default {};
 }

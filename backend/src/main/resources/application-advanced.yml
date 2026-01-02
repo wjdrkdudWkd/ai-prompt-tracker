@@ -1,0 +1,32 @@
+# Advanced profile - Enables Elasticsearch for similarity detection and advanced features
+
+spring:
+  data:
+    elasticsearch:
+      # Elasticsearch connection
+      repositories:
+        enabled: true
+  elasticsearch:
+    uris: http://localhost:9200
+
+# Enable Elasticsearch health check in advanced mode
+management:
+  health:
+    elasticsearch:
+      enabled: true
+
+# Advanced features configuration
+ai-prompts:
+  advanced:
+    # Enable similarity detection (requires Elasticsearch)
+    similarity-detection:
+      enabled: true
+      threshold: 0.85
+    # Enable advanced analytics
+    analytics:
+      enabled: true
+
+logging:
+  level:
+    # More detailed logging for advanced features
+    org.springframework.data.elasticsearch: DEBUG

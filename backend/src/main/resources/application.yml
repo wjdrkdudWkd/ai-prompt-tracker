@@ -61,18 +61,11 @@ spring:
       name: admin
       password: admin123
 
-# AI Providers Configuration
-ai:
-  providers:
-    openai:
-      api-key: ${OPENAI_API_KEY:}
-      enabled: true
-    anthropic:
-      api-key: ${ANTHROPIC_API_KEY:}
-      enabled: false
-    google:
-      api-key: ${GOOGLE_API_KEY:}
-      enabled: false
+# AI Prompt Tracker Configuration
+ai-prompts:
+  tracking:
+    # Store raw request/response data (only in dev/test for debugging)
+    store-raw-data: ${AI_PROMPTS_STORE_RAW:false}
 
 # Actuator Configuration
 management:
@@ -87,6 +80,11 @@ management:
     export:
       prometheus:
         enabled: true
+  health:
+    # Disable Elasticsearch health check by default
+    # Only enabled in 'advanced' profile
+    elasticsearch:
+      enabled: false
 
 # Logging Configuration
 logging:

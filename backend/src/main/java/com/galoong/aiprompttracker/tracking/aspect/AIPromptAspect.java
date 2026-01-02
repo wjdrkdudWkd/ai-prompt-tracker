@@ -1,22 +1,27 @@
 package com.galoong.aiprompttracker.tracking.aspect;
 
 import com.galoong.aiprompttracker.core.annotation.AIPrompt;
-import com.galoong.aiprompttracker.core.provider.AIProvider;
-import com.galoong.aiprompttracker.core.provider.AIProviderResponse;
-import com.galoong.aiprompttracker.tracking.detector.AIProviderDetector;
-import com.galoong.aiprompttracker.tracking.service.TrackingService;
+import com.galoong.aiprompttracker.tracking.context.ExecutionContext;
+import com.galoong.aiprompttracker.tracking.context.TrackingContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
+import java.time.Instant;
+import java.util.UUID;
 
 /**
- * @AIPrompt 어노테이션이 붙은 메서드를 자동으로 추적하는 AOP Aspect
+ * AOP Aspect that tracks @AIPrompt annotated method executions.
+ *
+ * This creates an Execution context for each method invocation,
+ * regardless of return type. The actual AI calls are tracked
+ * by interceptors (WebClient, RestTemplate, etc.).
  */
 @Slf4j
 @Aspect
@@ -24,102 +29,68 @@ import java.lang.reflect.Method;
 @RequiredArgsConstructor
 public class AIPromptAspect {
 
-    private final AIProviderDetector providerDetector;
-    private final TrackingService trackingService;
+    @Value("${spring.profiles.active:dev}")
+    private String environment;
 
     /**
-     * @AIPrompt 어노테이션이 붙은 메서드 실행 시 자동 추적
+     * Track @AIPrompt annotated method execution
      */
-    @Around("@annotation(com.galoong.aiprompttracker.core.annotation.AIPrompt)")
-    public Object trackAIPrompt(ProceedingJoinPoint joinPoint) throws Throwable {
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+    @Around("@annotation(aiPrompt)")
+    public Object trackExecution(ProceedingJoinPoint pjp, AIPrompt aiPrompt) throws Throwable {
+        MethodSignature signature = (MethodSignature) pjp.getSignature();
         Method method = signature.getMethod();
-        AIPrompt annotation = method.getAnnotation(AIPrompt.class);
 
-        if (annotation == null) {
-            return joinPoint.proceed();
+        // Generate unique execution ID
+        String executionId = UUID.randomUUID().toString();
+
+        // Determine function name
+        String functionName = aiPrompt.name();
+        if (functionName == null || functionName.isEmpty()) {
+            functionName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
         }
 
-        String functionName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
-        log.debug("Tracking AI prompt function: {}", functionName);
+        // Create execution context
+        ExecutionContext context = ExecutionContext.builder()
+                .executionId(executionId)
+                .functionName(functionName)
+                .category(aiPrompt.category())
+                .tags(aiPrompt.tags())
+                .environment(environment)
+                .startTime(Instant.now())
+                .build();
+
+        // Start tracking this execution
+        TrackingContext.startExecution(context);
+
+        log.debug("Started tracking execution: id={}, function={}", executionId, functionName);
 
         try {
-            // 메서드 실행
-            Object result = joinPoint.proceed();
+            // Execute the user's method (return type doesn't matter!)
+            Object result = pjp.proceed();
 
-            // AIProviderResponse 타입인 경우에만 추적
-            if (result instanceof AIProviderResponse) {
-                AIProviderResponse response = (AIProviderResponse) result;
-                recordResponse(response, annotation, functionName);
-            } else {
-                log.debug("Return type is not AIProviderResponse, skipping tracking for: {}", functionName);
-            }
+            // Mark execution as successful
+            TrackingContext.endExecutionSuccess();
+
+            log.info("Execution completed successfully: id={}, function={}, calls={}, cost={}",
+                    executionId,
+                    functionName,
+                    context.getCallsCount(),
+                    context.getTotalCost());
 
             return result;
 
-        } catch (Exception e) {
-            log.error("Error executing AI prompt function: {}", functionName, e);
+        } catch (Throwable ex) {
+            // Mark execution as failed
+            TrackingContext.endExecutionError(ex);
 
-            // 에러 정보 기록
-            recordError(annotation, functionName, e);
-            throw e;
+            log.error("Execution failed: id={}, function={}, error={}",
+                    executionId, functionName, ex.getMessage());
+
+            throw ex;
+
+        } finally {
+            // Always clean up ThreadLocal
+            TrackingContext.clear();
         }
-    }
-
-    private void recordResponse(AIProviderResponse response, AIPrompt annotation, String functionName) {
-        try {
-            trackingService.recordAICall(
-                    response,
-                    functionName,
-                    annotation.description(),
-                    annotation.category(),
-                    annotation.tags()
-            );
-        } catch (Exception e) {
-            log.error("Failed to record AI call response", e);
-        }
-    }
-
-    private void recordError(AIPrompt annotation, String functionName, Exception error) {
-        try {
-            // Provider 찾기
-            AIProvider provider = findProvider(annotation);
-            if (provider == null) {
-                return;
-            }
-
-            // 에러 응답 생성
-            AIProviderResponse errorResponse = AIProviderResponse.builder()
-                    .providerName(provider.getProviderName())
-                    .modelName(annotation.model())
-                    .success(false)
-                    .errorMessage(error.getMessage())
-                    .build();
-
-            trackingService.recordAICall(
-                    errorResponse,
-                    functionName,
-                    annotation.description(),
-                    annotation.category(),
-                    annotation.tags()
-            );
-        } catch (Exception e) {
-            log.error("Failed to record error", e);
-        }
-    }
-
-    private AIProvider findProvider(AIPrompt annotation) {
-        // Provider 명시된 경우
-        if (!annotation.provider().isEmpty()) {
-            return providerDetector.findByName(annotation.provider()).orElse(null);
-        }
-
-        // 모델명으로 Provider 찾기
-        if (!annotation.model().isEmpty()) {
-            return providerDetector.findByModel(annotation.model()).orElse(null);
-        }
-
-        // 기본 Provider 사용
-        return providerDetector.getDefaultProvider().orElse(null);
     }
 }
