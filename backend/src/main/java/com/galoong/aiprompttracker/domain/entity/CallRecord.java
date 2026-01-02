@@ -118,6 +118,13 @@ public class CallRecord {
     private String rawJson;
 
     /**
+     * Whether the response was truncated due to size limits
+     */
+    @Column(name = "was_truncated")
+    @Builder.Default
+    private Boolean wasTruncated = false;
+
+    /**
      * Timestamp when the call was made
      */
     @Column(name = "created_at", nullable = false)

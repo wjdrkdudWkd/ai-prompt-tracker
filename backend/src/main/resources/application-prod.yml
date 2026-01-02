@@ -10,6 +10,11 @@ spring:
       maximum-pool-size: 20
       minimum-idle: 10
 
+# Disable raw data storage in production (privacy & storage optimization)
+ai-prompts:
+  tracking:
+    store-raw-data: false
+
 logging:
   level:
     root: WARN

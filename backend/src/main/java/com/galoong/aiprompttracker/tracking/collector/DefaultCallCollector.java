@@ -46,6 +46,7 @@ public class DefaultCallCollector implements CallCollector {
                 .requestPreview(input.getRequestPreview())
                 .responsePreview(input.getResponsePreview())
                 .rawJson(input.getRawJson())
+                .wasTruncated(input.getWasTruncated())
                 .createdAt(Instant.now())
                 .build();
 
@@ -69,6 +70,7 @@ public class DefaultCallCollector implements CallCollector {
                     .requestPreview(input.getRequestPreview())
                     .responsePreview(input.getResponsePreview())
                     .rawJson(input.getRawJson())
+                    .wasTruncated(input.getWasTruncated())
                     .createdAt(Instant.now())
                     .build();
 

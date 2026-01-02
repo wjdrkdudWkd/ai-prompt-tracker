@@ -65,7 +65,18 @@ spring:
 ai-prompts:
   tracking:
     # Store raw request/response data (only in dev/test for debugging)
-    store-raw-data: ${AI_PROMPTS_STORE_RAW:false}
+    store-raw-data: ${AI_PROMPTS_STORE_RAW:true}
+    # Maximum bytes to capture from request body (16KB default)
+    max-request-bytes: 16384
+    # Maximum bytes to capture from response body (32KB default)
+    max-response-bytes: 32768
+    # Content types to capture (JSON only by default)
+    capture-content-types:
+      - application/json
+    # Whether to capture calls to unknown providers
+    capture-unknown-providers: false
+    # Truncation suffix when content exceeds limits
+    truncation-suffix: " ... (truncated)"
 
 # Actuator Configuration
 management:

@@ -75,4 +75,9 @@ public class CallRecordInput {
      * Full raw JSON (only in dev/test)
      */
     private String rawJson;
+
+    /**
+     * Whether the response was truncated due to size limits
+     */
+    private Boolean wasTruncated;
 }

@@ -5,7 +5,12 @@
       "Bash(gradle wrapper:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(./gradlew clean build:*)",
+      "Bash(../gradlew clean build:*)",
+      "Bash(curl:*)",
+      "Bash(java -version:*)",
+      "Bash(/usr/libexec/java_home:*)"
     ]
   }
 }
