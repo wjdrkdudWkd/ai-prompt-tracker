@@ -1,5 +1,6 @@
 package com.galoong.aiprompttracker.api.service;
 
+import com.galoong.aiprompttracker.api.config.ApiAutoConfiguration;
 import com.galoong.aiprompttracker.api.dto.ExecutionDetailResponse;
 import com.galoong.aiprompttracker.domain.entity.CallRecord;
 import com.galoong.aiprompttracker.domain.entity.ExecutionRecord;
@@ -24,11 +25,14 @@ public class ExecutionService {
 
     private final ExecutionRepositoryExtended executionRepository;
     private final CallRepositoryExtended callRepository;
+    private final ApiAutoConfiguration.PersistenceGuard persistenceGuard;
 
     /**
      * Get execution detail with call timeline
      */
     public ExecutionDetailResponse getExecutionDetail(String executionId) {
+        persistenceGuard.requirePersistence();
+
         ExecutionRecord execution = executionRepository.findById(executionId)
                 .orElse(null);
 

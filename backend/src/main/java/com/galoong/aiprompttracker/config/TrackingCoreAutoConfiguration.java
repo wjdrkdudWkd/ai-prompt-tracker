@@ -16,21 +16,23 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * Auto-configuration for AI Prompt Tracker interceptors.
+ * Core auto-configuration for AI Prompt Tracker.
  *
- * <p>Automatically registers tracking interceptors for:
+ * <p>Registers core tracking components (always active):
  * <ul>
- *   <li>WebClient (via ExchangeFilterFunction)</li>
- *   <li>RestTemplate (via RestTemplateCustomizer)</li>
- *   <li>RestClient (Spring Boot 3, via RestClient.Builder customizer)</li>
- *   <li>OkHttp (bean available for manual registration)</li>
+ *   <li>AOP aspect for @AIPrompt methods</li>
+ *   <li>HTTP client interceptors (WebClient, RestTemplate, RestClient, OkHttp)</li>
+ *   <li>Provider classifiers and parsers</li>
+ *   <li>Tracking context management</li>
  * </ul>
  *
  * <p>All interceptors only activate when inside @AIPrompt execution context.
+ *
+ * <p>Persistence is handled separately by {@link TrackingPersistenceAutoConfiguration}.
  */
 @Slf4j
 @Configuration
-public class TrackingAutoConfiguration {
+public class TrackingCoreAutoConfiguration {
 
     /**
      * WebClient tracking filter (already exists, ensure it's a bean)

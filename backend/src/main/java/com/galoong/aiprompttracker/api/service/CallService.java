@@ -1,5 +1,6 @@
 package com.galoong.aiprompttracker.api.service;
 
+import com.galoong.aiprompttracker.api.config.ApiAutoConfiguration;
 import com.galoong.aiprompttracker.api.dto.CallResponse;
 import com.galoong.aiprompttracker.domain.entity.CallRecord;
 import com.galoong.aiprompttracker.domain.entity.ExecutionRecord;
@@ -27,6 +28,7 @@ public class CallService {
 
     private final CallRepositoryExtended callRepository;
     private final ExecutionRepositoryExtended executionRepository;
+    private final ApiAutoConfiguration.PersistenceGuard persistenceGuard;
 
     /**
      * Search calls with filters
@@ -38,6 +40,8 @@ public class CallService {
             Instant from,
             Instant to,
             Pageable pageable) {
+
+        persistenceGuard.requirePersistence();
 
         Page<CallRecord> calls;
 

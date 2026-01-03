@@ -1,5 +1,6 @@
 package com.galoong.aiprompttracker.api.service;
 
+import com.galoong.aiprompttracker.api.config.ApiAutoConfiguration;
 import com.galoong.aiprompttracker.api.dto.DashboardSummaryResponse;
 import com.galoong.aiprompttracker.domain.repository.CallRepositoryExtended;
 import com.galoong.aiprompttracker.domain.repository.ExecutionRepositoryExtended;
@@ -21,11 +22,13 @@ public class DashboardService {
 
     private final ExecutionRepositoryExtended executionRepository;
     private final CallRepositoryExtended callRepository;
+    private final ApiAutoConfiguration.PersistenceGuard persistenceGuard;
 
     /**
      * Get dashboard summary statistics
      */
     public DashboardSummaryResponse getSummary(Instant from, Instant to, String environment) {
+        persistenceGuard.requirePersistence();
         // Build query based on filters
         Long totalExecutions;
         Long errorExecutions;

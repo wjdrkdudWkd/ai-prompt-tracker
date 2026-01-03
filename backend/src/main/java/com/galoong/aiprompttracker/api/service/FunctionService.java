@@ -1,5 +1,6 @@
 package com.galoong.aiprompttracker.api.service;
 
+import com.galoong.aiprompttracker.api.config.ApiAutoConfiguration;
 import com.galoong.aiprompttracker.api.dto.ExecutionSummaryResponse;
 import com.galoong.aiprompttracker.api.dto.FunctionAggregateResponse;
 import com.galoong.aiprompttracker.api.dto.FunctionDetailResponse;
@@ -32,6 +33,7 @@ public class FunctionService {
 
     private final ExecutionRepositoryExtended executionRepository;
     private final CallRepositoryExtended callRepository;
+    private final ApiAutoConfiguration.PersistenceGuard persistenceGuard;
 
     /**
      * Get function aggregates with pagination
@@ -44,6 +46,8 @@ public class FunctionService {
             String status,
             String functionNameSearch,
             Pageable pageable) {
+
+        persistenceGuard.requirePersistence();
 
         // For MVP, we'll fetch all executions and aggregate in memory
         // For production, this should be done with native SQL or custom queries
@@ -113,6 +117,8 @@ public class FunctionService {
      * Get function detail with provider/model breakdown
      */
     public FunctionDetailResponse getFunctionDetail(String functionName) {
+        persistenceGuard.requirePersistence();
+
         // Get executions for this function
         List<ExecutionRecord> executions = executionRepository.findAll().stream()
                 .filter(e -> functionName.equals(e.getFunctionName()))
@@ -190,6 +196,8 @@ public class FunctionService {
             Instant from,
             Instant to,
             Pageable pageable) {
+
+        persistenceGuard.requirePersistence();
 
         Page<ExecutionRecord> executions;
         if (from != null && to != null) {

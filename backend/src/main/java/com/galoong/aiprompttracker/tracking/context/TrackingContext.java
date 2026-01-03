@@ -1,7 +1,6 @@
 package com.galoong.aiprompttracker.tracking.context;
 
-import com.galoong.aiprompttracker.domain.entity.ExecutionRecord;
-import com.galoong.aiprompttracker.domain.repository.ExecutionRepository;
+import com.galoong.aiprompttracker.tracking.storage.ExecutionStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -12,7 +11,7 @@ import org.springframework.stereotype.Component;
  * This manages the execution lifecycle:
  * 1. Start execution (create context)
  * 2. Track calls (add to context)
- * 3. End execution (persist to database)
+ * 3. End execution (persist via ExecutionStore)
  * 4. Clear context
  */
 @Slf4j
@@ -21,11 +20,11 @@ public class TrackingContext {
 
     private static final ThreadLocal<ExecutionContext> CURRENT_EXECUTION = new ThreadLocal<>();
 
-    private static ExecutionRepository executionRepository;
+    private static ExecutionStore executionStore;
 
     @Autowired
-    public void setExecutionRepository(ExecutionRepository repository) {
-        TrackingContext.executionRepository = repository;
+    public void setExecutionStore(ExecutionStore store) {
+        TrackingContext.executionStore = store;
     }
 
     /**
@@ -100,50 +99,17 @@ public class TrackingContext {
     }
 
     /**
-     * Persist the execution to the database
+     * Persist the execution via ExecutionStore
      */
     private static void persistExecution(ExecutionContext context) {
         try {
-            if (executionRepository != null) {
-                ExecutionRecord record = convertToEntity(context);
-                executionRepository.save(record);
-                log.info("Persisted execution {}: function={}, calls={}, totalCost={}, status={}",
-                    context.getExecutionId(),
-                    context.getFunctionName(),
-                    context.getCallsCount(),
-                    context.getTotalCost(),
-                    context.getStatus());
+            if (executionStore != null) {
+                executionStore.save(context);
             } else {
-                log.warn("ExecutionRepository not available, cannot persist execution");
+                log.warn("ExecutionStore not available, cannot persist execution");
             }
         } catch (Exception e) {
             log.error("Failed to persist execution: {}", context.getExecutionId(), e);
         }
-    }
-
-    /**
-     * Convert ExecutionContext to ExecutionRecord entity
-     */
-    private static ExecutionRecord convertToEntity(ExecutionContext context) {
-        ExecutionRecord record = ExecutionRecord.builder()
-                .id(context.getExecutionId())
-                .functionName(context.getFunctionName())
-                .category(context.getCategory())
-                .tags(context.getTags())
-                .environment(context.getEnvironment())
-                .startedAt(context.getStartTime())
-                .finishedAt(context.getEndTime())
-                .durationMs(context.getDurationMs())
-                .status(context.getStatus())
-                .errorMessage(context.getErrorMessage())
-                .callsCount(context.getCallsCount())
-                .totalCost(context.getTotalCost())
-                .totalTokens(context.getTotalTokens())
-                .build();
-
-        // Note: CallRecord entities will be created separately by CallCollector
-        // to avoid complexity in this conversion
-
-        return record;
     }
 }
