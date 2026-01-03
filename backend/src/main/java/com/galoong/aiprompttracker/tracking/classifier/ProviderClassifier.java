@@ -1,13 +1,40 @@
 package com.galoong.aiprompttracker.tracking.classifier;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Classifies AI provider based on HTTP request host and path.
- * Supports OpenAI, Anthropic, Google, and can be extended for others.
+ *
+ * <p>Supports OpenAI, Anthropic, Google, Cohere, Mistral, and others by default.
+ * Can be extended via {@link CustomProviderMatcher} beans.
+ *
+ * <p>Custom matchers are checked first (ordered by {@link CustomProviderMatcher#getOrder()}),
+ * then built-in matchers are used as fallback.
  */
+@Slf4j
 @Component
 public class ProviderClassifier {
+
+    private final List<CustomProviderMatcher> customMatchers;
+
+    /**
+     * Constructor with optional custom matchers
+     *
+     * @param customMatchers List of custom provider matchers (can be empty)
+     */
+    public ProviderClassifier(List<CustomProviderMatcher> customMatchers) {
+        this.customMatchers = customMatchers;
+        // Sort by order (lower = higher priority)
+        this.customMatchers.sort(Comparator.comparingInt(CustomProviderMatcher::getOrder));
+
+        if (!customMatchers.isEmpty()) {
+            log.info("Registered {} custom provider matcher(s)", customMatchers.size());
+        }
+    }
 
     /**
      * Classify the AI provider based on the request host and path
@@ -21,6 +48,23 @@ public class ProviderClassifier {
             return "Unknown";
         }
 
+        // Try custom matchers first (ordered by priority)
+        for (CustomProviderMatcher matcher : customMatchers) {
+            String provider = matcher.matchProvider(host, path);
+            if (provider != null) {
+                log.debug("Custom matcher detected provider: {}", provider);
+                return provider;
+            }
+        }
+
+        // Fallback to built-in matchers
+        return classifyBuiltInProvider(host, path);
+    }
+
+    /**
+     * Built-in provider classification
+     */
+    private String classifyBuiltInProvider(String host, String path) {
         String lowerHost = host.toLowerCase();
 
         // OpenAI

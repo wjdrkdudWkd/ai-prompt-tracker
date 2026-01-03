@@ -24,6 +24,9 @@ dependencies {
     // HTTP Client
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
+    // OkHttp (optional, for OkHttp interceptor support)
+    compileOnly("com.squareup.okhttp3:okhttp:4.12.0")
+
     // Monitoring
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
