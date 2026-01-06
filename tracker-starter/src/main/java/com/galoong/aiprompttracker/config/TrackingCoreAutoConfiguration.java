@@ -118,34 +118,4 @@ public class TrackingCoreAutoConfiguration {
         return restClientBuilder -> restClientBuilder
                 .requestInterceptor(trackingRestTemplateInterceptor);
     }
-
-    /**
-     * OkHttp tracking interceptor bean (for manual registration)
-     *
-     * <p>Users must manually add this to their OkHttpClient:
-     * <pre>
-     * OkHttpClient client = new OkHttpClient.Builder()
-     *     .addInterceptor(trackingOkHttpInterceptor)
-     *     .build();
-     * </pre>
-     */
-    @Bean
-    @ConditionalOnClass(name = "okhttp3.Interceptor")
-    @ConditionalOnMissingBean
-    public TrackingOkHttpInterceptor trackingOkHttpInterceptor(
-            ProviderClassifier providerClassifier,
-            ModelExtractor modelExtractor,
-            CallCollector callCollector,
-            UsageMetricsParser usageMetricsParser,
-            TrackingCaptureProperties captureProperties) {
-
-        log.info("Registering TrackingOkHttpInterceptor bean (requires manual OkHttpClient setup)");
-        return new TrackingOkHttpInterceptor(
-                providerClassifier,
-                modelExtractor,
-                callCollector,
-                usageMetricsParser,
-                captureProperties
-        );
-    }
 }

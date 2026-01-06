@@ -27,7 +27,6 @@ import javax.sql.DataSource;
 @Slf4j
 @Configuration
 @ConditionalOnClass(Flyway.class)
-@EnableConfigurationProperties({TrackingFlywayProperties.class, TrackingDemoProperties.class})
 public class TrackingFlywayAutoConfiguration {
 
     /**

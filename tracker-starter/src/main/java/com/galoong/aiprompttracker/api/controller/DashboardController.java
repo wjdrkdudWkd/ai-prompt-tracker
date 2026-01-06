@@ -15,7 +15,7 @@ import java.time.Instant;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/aiprompt-tracker/api/dashboard")
 @RequiredArgsConstructor
 public class DashboardController {
 

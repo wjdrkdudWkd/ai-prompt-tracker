@@ -19,7 +19,7 @@ import java.time.Instant;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/calls")
+@RequestMapping("/aiprompt-tracker/api/calls")
 @RequiredArgsConstructor
 public class CallController {
 

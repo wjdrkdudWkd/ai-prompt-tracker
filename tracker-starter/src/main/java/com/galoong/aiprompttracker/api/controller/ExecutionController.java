@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/executions")
+@RequestMapping("/aiprompt-tracker/api/executions")
 @RequiredArgsConstructor
 public class ExecutionController {
 

@@ -1,101 +1,71 @@
 spring:
   application:
-    name: ai-prompt-tracker
+    name: ai-prompt-tracker-demo
 
-  profiles:
-    active: dev
+  # H2 Console (for demo mode)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/ai_prompt_tracker
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
+  # JPA - disable Hibernate DDL (use Flyway instead)
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        use_sql_comments: true
-        jdbc:
-          batch_size: 20
-        order_inserts: true
-        order_updates: true
 
+  # Flyway - enable migrations
   flyway:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
-    validate-on-migrate: true
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      timeout: 3000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-    elasticsearch:
-      repositories:
-        enabled: false
 
   jackson:
     serialization:
       write-dates-as-timestamps: false
     time-zone: UTC
 
-  security:
-    user:
-      name: admin
-      password: admin123
-
 # AI Prompt Tracker Configuration
 ai-prompts:
   tracking:
-    # Store raw request/response data (only in dev/test for debugging)
-    store-raw-data: ${AI_PROMPTS_STORE_RAW:true}
-    # Maximum bytes to capture from request body (16KB default)
+    # Enable demo mode (H2 in-memory database with auto-migration)
+    demo:
+      enabled: true
+
+    # Enable persistence in JDBC mode
+    persistence:
+      mode: jdbc
+
+    # Enable Flyway migrations
+    flyway:
+      enabled: true
+      auto-migrate: true
+
+    # Enable body capture with SAFE mode (default)
+    capture-enabled: true
+    capture-mode: SAFE
+    store-raw-data: true
+
+    # Capture limits
     max-request-bytes: 16384
-    # Maximum bytes to capture from response body (32KB default)
     max-response-bytes: 32768
-    # Content types to capture (JSON only by default)
+
+    # Content types to capture
     capture-content-types:
       - application/json
-    # Whether to capture calls to unknown providers
-    capture-unknown-providers: false
-    # Truncation suffix when content exceeds limits
-    truncation-suffix: " ... (truncated)"
+
+    # Capture unknown providers for demo purposes
+    capture-unknown-providers: true
 
 # Actuator Configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics
   endpoint:
     health:
       show-details: always
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-  health:
-    # Disable Elasticsearch health check by default
-    # Only enabled in 'advanced' profile
-    elasticsearch:
-      enabled: false
 
 # Logging Configuration
 logging:
@@ -104,16 +74,11 @@ logging:
     com.galoong.aiprompttracker: DEBUG
     org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 # Server Configuration
 server:
   port: 8080
-  compression:
-    enabled: true
   error:
     include-message: always
-    include-stacktrace: on_param

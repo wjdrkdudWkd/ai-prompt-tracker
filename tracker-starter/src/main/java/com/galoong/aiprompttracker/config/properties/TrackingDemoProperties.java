@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
  * Intended for development, testing, and demonstrations only.
  */
 @Data
-@Component
 @ConfigurationProperties(prefix = "ai-prompts.tracking.demo")
 public class TrackingDemoProperties {
 

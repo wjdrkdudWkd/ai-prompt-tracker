@@ -29,7 +29,6 @@ import org.springframework.stereotype.Component;
  * </pre>
  */
 @Data
-@Component
 @ConfigurationProperties(prefix = "ai-prompts.tracking.persistence")
 public class TrackingPersistenceProperties {
 

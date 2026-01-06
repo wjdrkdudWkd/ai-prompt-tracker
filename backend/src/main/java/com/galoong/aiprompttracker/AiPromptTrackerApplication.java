@@ -2,21 +2,17 @@ package com.galoong.aiprompttracker;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 /**
- * AI Prompt Tracker Application
+ * AI Prompt Tracker Demo Application
  *
- * 모든 AI API(OpenAI, Anthropic Claude, Google Gemini 등)를
- * Swagger처럼 관리하는 통합 개발자 도구
+ * <p>Demo application showcasing AI Prompt Tracker Spring Boot Starter.
+ * Uses @AIPrompt annotation to automatically track AI API calls.
  *
  * @author galoong
  * @version 1.0.0
  */
 @SpringBootApplication
-@EnableCaching
-@EnableJpaRepositories
 public class AiPromptTrackerApplication {
 
     public static void main(String[] args) {

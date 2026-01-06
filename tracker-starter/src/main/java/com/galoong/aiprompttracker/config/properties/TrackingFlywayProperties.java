@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
  * Default is {@code false} to avoid surprising users in production.
  */
 @Data
-@Component
 @ConfigurationProperties(prefix = "ai-prompts.tracking.flyway")
 public class TrackingFlywayProperties {
 

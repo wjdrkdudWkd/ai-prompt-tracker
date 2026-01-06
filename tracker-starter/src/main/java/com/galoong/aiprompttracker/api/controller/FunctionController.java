@@ -21,7 +21,7 @@ import java.time.Instant;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/functions")
+@RequestMapping("/aiprompt-tracker/api/functions")
 @RequiredArgsConstructor
 public class FunctionController {
 

@@ -10,7 +10,6 @@ import java.util.Set;
  * Configuration properties for AI call tracking and capture behavior.
  */
 @Data
-@Component
 @ConfigurationProperties(prefix = "ai-prompts.tracking")
 public class TrackingCaptureProperties {
 
