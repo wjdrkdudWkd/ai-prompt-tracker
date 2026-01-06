@@ -56,29 +56,21 @@ public class TrackingWebClientFilter implements ExchangeFilterFunction {
 
         long startTime = System.currentTimeMillis();
 
-        // Check if we should capture based on content type
+        // Determine content type
         String contentType = request.headers().getContentType() != null
                 ? request.headers().getContentType().toString()
                 : null;
 
-        boolean shouldCapture = captureProperties.isStoreRawData()
+        // Master gate: captureEnabled must be true to attempt any capture
+        boolean captureRequested = captureProperties.isCaptureEnabled()
+                && captureProperties.isStoreRawData()
                 && captureProperties.shouldCaptureContentType(contentType);
 
-        if (shouldCapture) {
-            // Capture request body, then execute
-            return captureRequestBody(request)
-                    .flatMap(capturedRequest -> {
-                        String requestBody = capturedRequest.getBody();
-                        String model = extractModel(requestBody, provider, path);
+        if (!captureRequested) {
+            // NO CAPTURE PATH: metadata-only tracking
+            log.debug("Body capture disabled or content-type not allowed: provider={}, contentType={}, captureEnabled={}, storeRawData={}",
+                    provider, contentType, captureProperties.isCaptureEnabled(), captureProperties.isStoreRawData());
 
-                        return next.exchange(request)
-                                .flatMap(response -> handleSuccessWithCapture(
-                                        response, provider, model, requestBody, startTime))
-                                .onErrorResume(error -> handleError(
-                                        error, provider, model, requestBody, startTime));
-                    });
-        } else {
-            // No capture, just track basic metrics
             String model = modelExtractor.extractModelFromPath(path, provider);
             if (model == null) {
                 model = "unknown";
@@ -91,6 +83,27 @@ public class TrackingWebClientFilter implements ExchangeFilterFunction {
                     .onErrorResume(error -> handleError(
                             error, provider, finalModel, null, startTime));
         }
+
+        // CAPTURE PATH: capture requested, check mode
+        return captureRequestBody(request)
+                .flatMap(capturedRequest -> {
+                    String requestBody = capturedRequest.getBody();
+                    String model = extractModel(requestBody, provider, path);
+
+                    return next.exchange(request)
+                            .flatMap(response -> {
+                                // Check capture mode for response body capture
+                                if (captureProperties.getCaptureMode() == TrackingCaptureProperties.CaptureMode.SAFE) {
+                                    return handleSuccessWithSafeCapture(
+                                            response, provider, model, requestBody, startTime);
+                                } else {
+                                    return handleSuccessWithForceCapture(
+                                            response, provider, model, requestBody, startTime);
+                                }
+                            })
+                            .onErrorResume(error -> handleError(
+                                    error, provider, model, requestBody, startTime));
+                });
     }
 
     /**
@@ -111,9 +124,15 @@ public class TrackingWebClientFilter implements ExchangeFilterFunction {
     }
 
     /**
-     * Handle successful response with SAFE body capture
+     * Handle successful response with SAFE mode body capture
+     *
+     * SAFE mode preconditions:
+     * - Content-Length header must be present
+     * - Content-Length must be <= maxInMemoryBytes
+     *
+     * If preconditions fail, falls back to no-capture path.
      */
-    private Mono<ClientResponse> handleSuccessWithCapture(
+    private Mono<ClientResponse> handleSuccessWithSafeCapture(
             ClientResponse response,
             String provider,
             String model,
@@ -122,7 +141,32 @@ public class TrackingWebClientFilter implements ExchangeFilterFunction {
 
         long latency = System.currentTimeMillis() - startTime;
 
-        // SAFE capture with hard memory limit
+        // Check SAFE mode preconditions
+        String contentLengthHeader = response.headers().asHttpHeaders().getFirst("Content-Length");
+
+        if (contentLengthHeader == null) {
+            log.debug("SAFE mode: Skipping capture - missing Content-Length header (provider={}, model={})",
+                    provider, model);
+            return handleSuccessNoCapture(response, provider, model, startTime);
+        }
+
+        try {
+            long contentLength = Long.parseLong(contentLengthHeader);
+            if (contentLength > captureProperties.getMaxInMemoryBytes()) {
+                log.debug("SAFE mode: Skipping capture - Content-Length ({}) exceeds maxInMemoryBytes ({}) (provider={}, model={})",
+                        contentLength, captureProperties.getMaxInMemoryBytes(), provider, model);
+                return handleSuccessNoCapture(response, provider, model, startTime);
+            }
+        } catch (NumberFormatException e) {
+            log.debug("SAFE mode: Skipping capture - invalid Content-Length header: {} (provider={}, model={})",
+                    contentLengthHeader, provider, model);
+            return handleSuccessNoCapture(response, provider, model, startTime);
+        }
+
+        // Preconditions met - proceed with SAFE capture
+        log.debug("SAFE mode: Capturing response body (provider={}, model={}, content-length={})",
+                provider, model, contentLengthHeader);
+
         return BodyCaptureUtil.captureDataBuffers(
                         response.bodyToFlux(DataBuffer.class),
                         captureProperties.getMaxResponseBytes(),
@@ -138,7 +182,7 @@ public class TrackingWebClientFilter implements ExchangeFilterFunction {
                         try {
                             metrics = usageMetricsParser.parse(responsePreview, provider);
                         } catch (Exception e) {
-                            log.debug("Could not parse metrics from truncated response: {}", e.getMessage());
+                            log.debug("Could not parse metrics from response: {}", e.getMessage());
                         }
                     }
 
@@ -174,6 +218,101 @@ public class TrackingWebClientFilter implements ExchangeFilterFunction {
                     callCollector.recordCall(input);
 
                     // Rebuild response with FULL BODY from captured bytes
+                    return Mono.just(rebuildResponse(response, capturedBody.toFlux()));
+                });
+    }
+
+    /**
+     * Handle successful response with FORCE mode body capture
+     *
+     * FORCE mode: Best-effort capture even without Content-Length or when too large.
+     * May truncate and log warnings.
+     */
+    private Mono<ClientResponse> handleSuccessWithForceCapture(
+            ClientResponse response,
+            String provider,
+            String model,
+            String requestBody,
+            long startTime) {
+
+        long latency = System.currentTimeMillis() - startTime;
+
+        // FORCE mode: always attempt capture, even without preconditions
+        String contentLengthHeader = response.headers().asHttpHeaders().getFirst("Content-Length");
+
+        if (contentLengthHeader == null) {
+            log.debug("FORCE mode: Attempting capture without Content-Length header (provider={}, model={})",
+                    provider, model);
+        } else {
+            try {
+                long contentLength = Long.parseLong(contentLengthHeader);
+                if (contentLength > captureProperties.getMaxInMemoryBytes()) {
+                    log.warn("FORCE mode: Attempting capture despite large Content-Length ({} > {}) - may truncate (provider={}, model={})",
+                            contentLength, captureProperties.getMaxInMemoryBytes(), provider, model);
+                }
+            } catch (NumberFormatException e) {
+                log.debug("FORCE mode: Invalid Content-Length header, proceeding anyway: {}", contentLengthHeader);
+            }
+        }
+
+        return BodyCaptureUtil.captureDataBuffers(
+                        response.bodyToFlux(DataBuffer.class),
+                        captureProperties.getMaxResponseBytes(),
+                        captureProperties.getMaxInMemoryBytes(),
+                        captureProperties.getTruncationSuffix())
+                .flatMap(capturedBody -> {
+                    String responsePreview = capturedBody.getPreview();
+                    boolean wasTruncated = capturedBody.wasTruncated();
+
+                    // FORCE mode: log warning if truncated
+                    if (wasTruncated) {
+                        log.warn("FORCE mode: Response body truncated (provider={}, model={}, content-length={}, maxInMemoryBytes={}, maxResponseBytes={})",
+                                provider, model, contentLengthHeader != null ? contentLengthHeader : "unknown",
+                                captureProperties.getMaxInMemoryBytes(), captureProperties.getMaxResponseBytes());
+                    }
+
+                    // Parse usage metrics from captured response (only if not too large)
+                    UsageMetricsParser.ParsedUsageMetrics metrics = null;
+                    if (!wasTruncated || responsePreview.length() > 100) {
+                        try {
+                            metrics = usageMetricsParser.parse(responsePreview, provider);
+                        } catch (Exception e) {
+                            log.debug("Could not parse metrics from response: {}", e.getMessage());
+                        }
+                    }
+
+                    // Prepare request preview (truncate if needed)
+                    String requestPreview = BodyCaptureUtil.captureString(
+                            requestBody,
+                            captureProperties.getMaxRequestBytes(),
+                            captureProperties.getTruncationSuffix());
+
+                    // Determine full raw JSON (only if not truncated)
+                    String rawJson = null;
+                    if (!wasTruncated && capturedBody.getFullBodyBytes().length > 0) {
+                        rawJson = new String(capturedBody.getFullBodyBytes(),
+                                java.nio.charset.StandardCharsets.UTF_8);
+                    }
+
+                    // Record the call
+                    CallRecordInput input = CallRecordInput.builder()
+                            .provider(provider)
+                            .model(model)
+                            .promptTokens(metrics != null ? metrics.getInputTokens() : null)
+                            .completionTokens(metrics != null ? metrics.getOutputTokens() : null)
+                            .totalTokens(metrics != null ? metrics.getTotalTokens() : null)
+                            .cost(null) // TODO: Calculate based on pricing
+                            .latencyMs(latency)
+                            .status("success")
+                            .requestPreview(requestPreview)
+                            .responsePreview(responsePreview)
+                            .rawJson(rawJson)
+                            .wasTruncated(wasTruncated)
+                            .build();
+
+                    callCollector.recordCall(input);
+
+                    // Rebuild response with captured body (full or truncated)
                     return Mono.just(rebuildResponse(response, capturedBody.toFlux()));
                 });
     }

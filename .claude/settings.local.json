@@ -12,7 +12,8 @@
       "Bash(java -version:*)",
       "Bash(/usr/libexec/java_home:*)",
       "Bash(./gradlew compileJava:*)",
-      "Bash(../gradlew :backend:compileJava:*)"
+      "Bash(../gradlew :backend:compileJava:*)",
+      "Bash(javac:*)"
     ]
   }
 }

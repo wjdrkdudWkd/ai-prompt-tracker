@@ -59,6 +59,163 @@ That's it! Tracking works automatically for all supported clients.
 
 ---
 
+## Body Capture Modes
+
+AI Prompt Tracker offers three capture strategies to balance safety, performance, and completeness.
+
+### Default: Metadata-Only Tracking (Recommended)
+
+**Configuration:**
+```yaml
+ai-prompts:
+  tracking:
+    capture-enabled: false  # Default - no body capture
+```
+
+**Behavior:**
+- ✅ Tracks provider, model, latency, status, token counts
+- ✅ Zero risk of "body already consumed" errors
+- ✅ Minimal performance overhead
+- ✅ No privacy concerns (no request/response bodies stored)
+- ❌ No request/response preview in dashboard
+
+**When to use:**
+- Production environments where privacy is critical
+- High-throughput applications
+- When you only need metrics (cost, latency, tokens)
+
+---
+
+### Safe Mode: Conservative Body Capture
+
+**Configuration:**
+```yaml
+ai-prompts:
+  tracking:
+    capture-enabled: true
+    capture-mode: SAFE        # Only capture when safe
+    store-raw-data: true
+    max-request-bytes: 16384
+    max-response-bytes: 32768
+    max-in-memory-bytes: 2097152
+    capture-content-types:
+      - application/json
+```
+
+**Behavior:**
+- ✅ Only captures when **all preconditions met**:
+  - Content-Type is `application/json`
+  - Response has `Content-Length` header
+  - `Content-Length <= maxInMemoryBytes`
+  - `storeRawData == true`
+- ✅ **Guaranteed safe**: No "body already consumed" errors
+- ✅ Perfect downstream fidelity (full body always rebuilt)
+- ✅ Automatic truncation for preview (respects `maxRequestBytes` and `maxResponseBytes`)
+- ⚠️ Skips capture if preconditions fail (logs DEBUG message with reason)
+
+**When to use:**
+- Development and testing environments
+- When you want request/response preview for debugging
+- When you need guaranteed safety (no downstream breakage)
+- When most AI API responses have `Content-Length` header (OpenAI, Anthropic, etc.)
+
+**Example DEBUG logs when skipping:**
+```
+SAFE mode: Skipping capture - missing Content-Length header (provider=OpenAI, model=gpt-4)
+SAFE mode: Skipping capture - Content-Length (5242880) exceeds maxInMemoryBytes (2097152)
+```
+
+---
+
+### Force Mode: Best-Effort Capture (Use with Caution)
+
+**Configuration:**
+```yaml
+ai-prompts:
+  tracking:
+    capture-enabled: true
+    capture-mode: FORCE       # Capture even when risky
+    store-raw-data: true
+    max-request-bytes: 16384
+    max-response-bytes: 32768
+    max-in-memory-bytes: 2097152
+```
+
+**Behavior:**
+- ✅ Attempts capture **even without `Content-Length` header**
+- ✅ Attempts capture **even when response is too large**
+- ⚠️ May truncate large responses (sets `wasTruncated=true`)
+- ⚠️ Logs WARN when truncation occurs
+- ⚠️ In rare cases, may return truncated body to downstream code
+
+**When to use:**
+- **Only in development/testing** where you accept potential issues
+- When debugging streaming responses (no `Content-Length`)
+- When you must capture bodies but accept truncation risk
+- **NOT recommended for production**
+
+**Example WARN logs:**
+```
+FORCE mode: Attempting capture despite large Content-Length (5242880 > 2097152) - may truncate
+FORCE mode: Response body truncated (provider=OpenAI, model=gpt-4, content-length=5242880, maxInMemoryBytes=2097152, maxResponseBytes=32768)
+```
+
+---
+
+### Comparison Table
+
+| Feature | Metadata-Only | Safe Mode | Force Mode |
+|---------|--------------|-----------|------------|
+| **captureEnabled** | `false` | `true` | `true` |
+| **captureMode** | N/A | `SAFE` | `FORCE` |
+| **Tracks metrics** | ✅ | ✅ | ✅ |
+| **Captures bodies** | ❌ | ✅ (when safe) | ✅ (always) |
+| **Requires Content-Length** | N/A | ✅ | ❌ |
+| **Checks size limits** | N/A | ✅ | ⚠️ (captures anyway) |
+| **Risk of "body consumed" error** | ❌ None | ❌ None | ⚠️ Rare cases |
+| **Downstream fidelity** | ✅ Perfect | ✅ Perfect | ⚠️ May truncate |
+| **Production safe** | ✅ | ✅ | ❌ |
+
+---
+
+### Migration Examples
+
+**Scenario 1: Upgrade from old default (implicit capture)**
+```yaml
+# Old (risky default)
+ai-prompts:
+  tracking:
+    store-raw-data: true  # Captured everything
+
+# New (safe default)
+ai-prompts:
+  tracking:
+    capture-enabled: true  # Must explicitly enable
+    capture-mode: SAFE     # Only when safe
+    store-raw-data: true
+```
+
+**Scenario 2: Production (metrics only, no bodies)**
+```yaml
+ai-prompts:
+  tracking:
+    capture-enabled: false  # No body capture
+    # Tracks provider, model, latency, status, tokens only
+```
+
+**Scenario 3: Development (full debugging)**
+```yaml
+ai-prompts:
+  tracking:
+    capture-enabled: true
+    capture-mode: SAFE      # Conservative
+    store-raw-data: true
+    max-request-bytes: 65536  # Larger for debugging
+    max-response-bytes: 131072
+```
+
+---
+
 ## WebClient Integration
 
 ### Auto-Configuration (Zero Code)

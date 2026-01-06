@@ -15,8 +15,31 @@ import java.util.Set;
 public class TrackingCaptureProperties {
 
     /**
+     * Master switch: enable/disable request/response body capture.
+     *
+     * If false: NEVER attempt body capture. Track only metadata (provider, model, latency, status).
+     * If true: Attempt capture according to captureMode rules.
+     *
+     * Default: false (safe, zero risk, metadata-only tracking)
+     */
+    private boolean captureEnabled = false;
+
+    /**
+     * Capture mode: controls safety vs. completeness tradeoff.
+     *
+     * SAFE (default): Only capture when all preconditions met (content-length present, within limits, allowed content-type).
+     *                 Guarantees no "body already consumed" errors and perfect downstream fidelity.
+     *
+     * FORCE (opt-in): Best-effort capture even when preconditions not met. May truncate large responses.
+     *                 Use only if you accept potential downstream truncation in edge cases.
+     */
+    private CaptureMode captureMode = CaptureMode.SAFE;
+
+    /**
      * Enable storing raw request/response data.
      * Should be true in dev/test, false in production for privacy/storage.
+     *
+     * Note: This property only takes effect when captureEnabled=true.
      */
     private boolean storeRawData = true;
 
@@ -67,5 +90,31 @@ public class TrackingCaptureProperties {
         String lowerContentType = contentType.toLowerCase();
         return captureContentTypes.stream()
                 .anyMatch(allowed -> lowerContentType.contains(allowed.toLowerCase()));
+    }
+
+    /**
+     * Capture mode enum
+     */
+    public enum CaptureMode {
+        /**
+         * SAFE mode: Only capture when all preconditions are met.
+         * - Content-Type is allowed
+         * - Content-Length header is present
+         * - Content-Length <= maxInMemoryBytes
+         * - storeRawData == true
+         *
+         * Guarantees: No "body already consumed" errors, perfect downstream fidelity.
+         */
+        SAFE,
+
+        /**
+         * FORCE mode: Best-effort capture even when preconditions aren't met.
+         * - Attempts capture even with missing Content-Length or large bodies
+         * - May truncate responses that exceed limits
+         * - Logs warnings when truncation occurs
+         *
+         * Use only if you accept potential downstream truncation in edge cases.
+         */
+        FORCE
     }
 }
