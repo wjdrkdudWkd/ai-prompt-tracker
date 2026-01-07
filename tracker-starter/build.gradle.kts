@@ -78,10 +78,23 @@ publishing {
         create<MavenPublication>("maven") {
             from(components["java"])
 
+            // Explicit artifact ID
+            artifactId = "ai-prompt-tracker-starter"
+
+            // Publish resolved versions for dependencies
+            versionMapping {
+                usage("java-api") {
+                    fromResolutionOf("runtimeClasspath")
+                }
+                usage("java-runtime") {
+                    fromResolutionResult()
+                }
+            }
+
             pom {
                 name.set("AI Prompt Tracker Spring Boot Starter")
                 description.set("Spring Boot starter for tracking AI API calls with embedded dashboard")
-                url.set("https://github.com/galoong/ai-prompt-tracker")
+                url.set("https://github.com/wjdrkdudWkd/ai-prompt-tracker")
 
                 licenses {
                     license {
@@ -98,9 +111,9 @@ publishing {
                 }
 
                 scm {
-                    connection.set("scm:git:git://github.com/galoong/ai-prompt-tracker.git")
-                    developerConnection.set("scm:git:ssh://github.com:galoong/ai-prompt-tracker.git")
-                    url.set("https://github.com/galoong/ai-prompt-tracker")
+                    connection.set("scm:git:git://github.com/wjdrkdudWkd/ai-prompt-tracker.git")
+                    developerConnection.set("scm:git:ssh://github.com:wjdrkdudWkd/ai-prompt-tracker.git")
+                    url.set("https://github.com/wjdrkdudWkd/ai-prompt-tracker")
                 }
             }
         }
@@ -110,6 +123,16 @@ publishing {
         maven {
             name = "Local"
             url = uri(layout.buildDirectory.dir("repo"))
+        }
+
+        // GitHub Packages
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/wjdrkdudWkd/ai-prompt-tracker")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") as String?
+                password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.key") as String?
+            }
         }
     }
 }
