@@ -5,7 +5,8 @@ import com.galoong.aiprompttracker.api.service.ExecutionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -18,13 +19,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Tests for ExecutionController
  */
+@SpringBootTest(properties = {
+        "ai-prompts.tracking.demo.enabled=true"
+})
 @WebMvcTest(ExecutionController.class)
 class ExecutionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private ExecutionService executionService;
 
     @Test

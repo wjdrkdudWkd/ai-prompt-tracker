@@ -1,6 +1,7 @@
 # Gradle
 .gradle/
 build/
+*.jar
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -24,7 +25,6 @@ Thumbs.db
 *.log
 *.ctxt
 .mtj.tmp/
-*.jar
 *.war
 *.nar
 *.ear

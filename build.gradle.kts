@@ -19,6 +19,9 @@ subprojects {
     apply(plugin = "io.spring.dependency-management")
 
     java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(17))
+        }
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -37,9 +40,13 @@ subprojects {
         testImplementation("org.springframework.boot:spring-boot-starter-test")
         testImplementation("org.testcontainers:junit-jupiter")
         testImplementation("org.testcontainers:postgresql")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     tasks.test {
         useJUnitPlatform()
+        javaLauncher.set(javaToolchains.launcherFor {
+            languageVersion.set(JavaLanguageVersion.of(17))
+        })
     }
 }
