@@ -22,7 +22,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  */
 @Slf4j
 @Configuration
-@ConditionalOnClass(name = "javax.persistence.Entity")
+@ConditionalOnClass(name = "jakarta.persistence.Entity")
 @ConditionalOnProperty(
         name = "ai-prompts.tracking.persistence.mode",
         havingValue = "jdbc"

@@ -5,6 +5,7 @@ import com.galoong.aiprompttracker.tracking.storage.ExecutionStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -16,6 +17,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @Slf4j
 @Configuration
+@ComponentScan(basePackages = {
+    "com.galoong.aiprompttracker.api.controller",
+    "com.galoong.aiprompttracker.api.service"
+})
 public class ApiAutoConfiguration implements WebMvcConfigurer {
 
     /**

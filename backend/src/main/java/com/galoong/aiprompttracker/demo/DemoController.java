@@ -1,8 +1,12 @@
 package com.galoong.aiprompttracker.demo;
 
 import com.galoong.aiprompttracker.core.annotation.AIPrompt;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +26,13 @@ import java.util.concurrent.ThreadLocalRandom;
 @Slf4j
 @RestController
 @RequestMapping("/demo")
+@RequiredArgsConstructor
 public class DemoController {
+
+    private final WebClient.Builder webClientBuilder;
+
+    @Value("${server.port:8080}")
+    private int serverPort;
 
     /**
      * Simple demo endpoint that triggers tracking.
@@ -40,29 +50,44 @@ public class DemoController {
     }
 
     /**
-     * Simulates a chat completion call.
-     * In real scenarios, this would call OpenAI, Anthropic, etc.
+     * Simulates a chat completion call to mock OpenAI API.
+     * This demonstrates real HTTP call tracking.
      */
     @PostMapping("/chat")
     @AIPrompt(name = "demo-chat", category = "chat")
-    public Map<String, Object> demoChat(@RequestBody Map<String, String> request) {
+    public Mono<Map<String, Object>> demoChat(@RequestBody Map<String, String> request) {
         String prompt = request.getOrDefault("prompt", "Hello!");
         log.info("Demo chat called with prompt: {}", prompt);
 
-        // Simulate AI response
-        String response = generateMockResponse(prompt);
+        // Call mock OpenAI API
+        WebClient webClient = webClientBuilder
+            .baseUrl("http://localhost:" + serverPort)
+            .build();
 
-        return Map.of(
-            "prompt", prompt,
-            "response", response,
-            "model", "gpt-3.5-turbo",
-            "usage", Map.of(
-                "prompt_tokens", prompt.length() / 4,
-                "completion_tokens", response.length() / 4,
-                "total_tokens", (prompt.length() + response.length()) / 4
-            ),
-            "timestamp", LocalDateTime.now().toString()
-        );
+        return webClient.post()
+            .uri("/mock/openai/v1/chat/completions")
+            .bodyValue(Map.of(
+                "model", "gpt-3.5-turbo",
+                "messages", List.of(
+                    Map.of("role", "user", "content", prompt)
+                )
+            ))
+            .retrieve()
+            .bodyToMono(Map.class)
+            .map(apiResponse -> Map.of(
+                "status", "success",
+                "prompt", prompt,
+                "api_response", apiResponse,
+                "timestamp", LocalDateTime.now().toString(),
+                "tracked", "This HTTP call was automatically tracked by @AIPrompt"
+            ))
+            .onErrorResume(error -> {
+                log.error("Error calling mock OpenAI API", error);
+                return Mono.just(Map.of(
+                    "status", "error",
+                    "message", error.getMessage()
+                ));
+            });
     }
 
 

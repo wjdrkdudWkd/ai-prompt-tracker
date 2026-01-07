@@ -41,6 +41,15 @@ public class AiPromptTrackerWebMvcConfiguration implements WebMvcConfigurer {
 
         @Override
         protected Resource getResource(String resourcePath, Resource location) throws IOException {
+            // Handle root path (empty or ".")
+            if (resourcePath.isEmpty() || ".".equals(resourcePath)) {
+                Resource indexHtml = new ClassPathResource("/META-INF/resources/aiprompt-tracker/index.html");
+                if (indexHtml.exists()) {
+                    log.debug("SPA fallback: serving index.html for root path");
+                    return indexHtml;
+                }
+            }
+
             Resource requestedResource = location.createRelative(resourcePath);
 
             // If resource exists and is readable, return it

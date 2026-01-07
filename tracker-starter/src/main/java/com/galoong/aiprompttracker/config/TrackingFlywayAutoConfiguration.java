@@ -22,7 +22,7 @@ import javax.sql.DataSource;
  *
  * <p>Default: Flyway is <b>disabled</b> to avoid surprising users in production.
  *
- * <p>Migrations are located in {@code classpath:db/migration/tracking/}.
+ * <p>Migrations are located in {@code classpath:db/migration}.
  */
 @Slf4j
 @Configuration
@@ -54,7 +54,7 @@ public class TrackingFlywayAutoConfiguration {
 
         Flyway flyway = Flyway.configure()
                 .dataSource(dataSource)
-                .locations("classpath:db/migration/tracking")
+                .locations("classpath:db/migration")
                 .baselineOnMigrate(true)
                 .baselineVersion("0")
                 .table("flyway_tracking_schema_history")

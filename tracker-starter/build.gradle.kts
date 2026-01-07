@@ -12,8 +12,6 @@ java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
     withSourcesJar()
-    // Disable javadoc temporarily to avoid errors
-    // withJavadocJar()
 }
 
 dependencyManagement {
@@ -35,16 +33,16 @@ dependencies {
     // WebFlux for WebClient support
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
-    // JPA and Flyway (optional - only used when persistence enabled, but API uses Pageable)
+    // JPA and Flyway (required for API - Pageable, etc.)
     api("org.springframework.boot:spring-boot-starter-data-jpa")
     api("org.flywaydb:flyway-core")
     compileOnly("org.flywaydb:flyway-database-postgresql")
     compileOnly("com.h2database:h2")
 
-    // OkHttp (optional - only used if present in classpath)
+    // OkHttp (optional)
     compileOnly("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // Jackson for JSON processing
+    // Jackson for JSON
     implementation("com.fasterxml.jackson.core:jackson-databind")
 
     // Lombok
