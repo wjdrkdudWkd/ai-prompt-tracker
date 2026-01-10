@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  * </ul>
  */
 @Slf4j
-@Component
+// @Component removed - registered as bean in TrackingCoreAutoConfiguration
 @RequiredArgsConstructor
 public class UsageMetricsParser {
 

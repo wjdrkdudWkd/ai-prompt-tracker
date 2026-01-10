@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * Handles different provider formats.
  */
 @Slf4j
-@Component
+// @Component removed - registered as bean in TrackingCoreAutoConfiguration
 @RequiredArgsConstructor
 public class ModelExtractor {
 

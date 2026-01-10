@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono;
  * to prevent OOM issues while providing debugging capabilities.
  */
 @Slf4j
-@Component
+// @Component removed - registered as bean in TrackingCoreAutoConfiguration
 @RequiredArgsConstructor
 public class TrackingWebClientFilter implements ExchangeFilterFunction {
 

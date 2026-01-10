@@ -29,10 +29,75 @@ import org.springframework.web.reactive.function.client.WebClient;
  * <p>All interceptors only activate when inside @AIPrompt execution context.
  *
  * <p>Persistence is handled separately by {@link TrackingPersistenceAutoConfiguration}.
+ *
+ * <p><b>Important:</b> All beans are registered explicitly here to avoid relying on
+ * component scanning in consumer projects.
  */
 @Slf4j
 @Configuration
 public class TrackingCoreAutoConfiguration {
+
+    // ========== Core Tracking Beans ==========
+
+    /**
+     * TrackingContext - manages thread-local execution context
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public com.galoong.aiprompttracker.tracking.context.TrackingContext trackingContext(
+            com.galoong.aiprompttracker.tracking.storage.ExecutionStore executionStore) {
+        log.info("Registering TrackingContext (thread-local execution context manager)");
+        com.galoong.aiprompttracker.tracking.context.TrackingContext context =
+                new com.galoong.aiprompttracker.tracking.context.TrackingContext();
+        context.setExecutionStore(executionStore);
+        return context;
+    }
+
+    /**
+     * ProviderClassifier - classifies AI providers from HTTP host/path
+     *
+     * <p>Accepts optional List of CustomProviderMatcher beans for extensibility
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public ProviderClassifier providerClassifier(
+            java.util.List<com.galoong.aiprompttracker.tracking.classifier.CustomProviderMatcher> customMatchers) {
+        log.info("Registering ProviderClassifier with {} custom matcher(s)", customMatchers.size());
+        return new ProviderClassifier(customMatchers);
+    }
+
+    /**
+     * ModelExtractor - extracts model names from request/response
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public ModelExtractor modelExtractor(com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        log.info("Registering ModelExtractor");
+        return new ModelExtractor(objectMapper);
+    }
+
+    /**
+     * UsageMetricsParser - parses usage metrics from AI responses
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public UsageMetricsParser usageMetricsParser(com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        log.info("Registering UsageMetricsParser");
+        return new UsageMetricsParser(objectMapper);
+    }
+
+    /**
+     * DefaultCallCollector - collects call data
+     */
+    @Bean
+    @ConditionalOnMissingBean(CallCollector.class)
+    public com.galoong.aiprompttracker.tracking.collector.DefaultCallCollector defaultCallCollector(
+            com.galoong.aiprompttracker.tracking.storage.CallStore callStore) {
+        log.info("Registering DefaultCallCollector");
+        return new com.galoong.aiprompttracker.tracking.collector.DefaultCallCollector(callStore);
+    }
+
+    // ========== HTTP Client Interceptors ==========
 
     /**
      * WebClient tracking filter (already exists, ensure it's a bean)

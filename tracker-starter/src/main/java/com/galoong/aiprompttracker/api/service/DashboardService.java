@@ -2,11 +2,10 @@ package com.galoong.aiprompttracker.api.service;
 
 import com.galoong.aiprompttracker.api.config.ApiAutoConfiguration;
 import com.galoong.aiprompttracker.api.dto.DashboardSummaryResponse;
-import com.galoong.aiprompttracker.domain.repository.CallRepositoryExtended;
-import com.galoong.aiprompttracker.domain.repository.ExecutionRepositoryExtended;
+import com.galoong.aiprompttracker.domain.repository.CallRepository;
+import com.galoong.aiprompttracker.domain.repository.ExecutionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -15,13 +14,13 @@ import java.time.Instant;
  * Service for dashboard statistics
  */
 @Slf4j
-@Service
+// @Service removed - registered as bean in ApiAutoConfiguration
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class DashboardService {
 
-    private final ExecutionRepositoryExtended executionRepository;
-    private final CallRepositoryExtended callRepository;
+    private final ExecutionRepository executionRepository;
+    private final CallRepository callRepository;
     private final ApiAutoConfiguration.PersistenceGuard persistenceGuard;
 
     /**

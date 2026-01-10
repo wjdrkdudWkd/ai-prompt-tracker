@@ -6,16 +6,17 @@ import com.galoong.aiprompttracker.tracking.context.TrackingContext;
 import com.galoong.aiprompttracker.tracking.storage.CallStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
 /**
  * Default implementation of CallCollector.
  * Records calls to both the ThreadLocal context and the CallStore.
+ *
+ * <p><b>Note:</b> This class is registered as a bean by TrackingCoreAutoConfiguration.
+ * Do not use @Component annotation to avoid relying on component scanning.
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class DefaultCallCollector implements CallCollector {
 

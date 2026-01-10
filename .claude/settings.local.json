@@ -14,7 +14,15 @@
       "Bash(./gradlew compileJava:*)",
       "Bash(../gradlew :backend:compileJava:*)",
       "Bash(javac:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(jar xf:*)",
+      "Bash(cat:*)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(tracker-starter/src/main/java/com/galoong/aiprompttracker/domain/repository/ExecutionRepositoryCustom.java )",
+      "Bash(tracker-starter/src/main/java/com/galoong/aiprompttracker/domain/repository/CallRepositoryExtended.java)",
+      "Bash(./gradlew :tracker-starter:compileJava:*)",
+      "Bash(./gradlew :backend:test:*)"
     ]
   }
 }

@@ -1,7 +1,6 @@
 package com.galoong.aiprompttracker.tracking.classifier;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
 import java.util.List;
@@ -14,9 +13,11 @@ import java.util.List;
  *
  * <p>Custom matchers are checked first (ordered by {@link CustomProviderMatcher#getOrder()}),
  * then built-in matchers are used as fallback.
+ *
+ * <p><b>Note:</b> This class is registered as a bean by TrackingCoreAutoConfiguration.
+ * Do not use @Component annotation to avoid relying on component scanning.
  */
 @Slf4j
-@Component
 public class ProviderClassifier {
 
     private final List<CustomProviderMatcher> customMatchers;

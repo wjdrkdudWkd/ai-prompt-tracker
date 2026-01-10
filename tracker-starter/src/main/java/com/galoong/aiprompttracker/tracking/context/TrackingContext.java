@@ -3,7 +3,6 @@ package com.galoong.aiprompttracker.tracking.context;
 import com.galoong.aiprompttracker.tracking.storage.ExecutionStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * Thread-local context for tracking AI executions and calls.
@@ -13,9 +12,11 @@ import org.springframework.stereotype.Component;
  * 2. Track calls (add to context)
  * 3. End execution (persist via ExecutionStore)
  * 4. Clear context
+ *
+ * <p><b>Note:</b> This class is registered as a bean by TrackingCoreAutoConfiguration.
+ * Do not use @Component annotation to avoid relying on component scanning.
  */
 @Slf4j
-@Component
 public class TrackingContext {
 
     private static final ThreadLocal<ExecutionContext> CURRENT_EXECUTION = new ThreadLocal<>();

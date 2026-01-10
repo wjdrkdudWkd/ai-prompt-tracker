@@ -5,6 +5,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 /**
  * Controller to handle UI root path redirects.
+ *
+ * <p><b>Note:</b> This class is registered as a bean by ApiAutoConfiguration.
+ * The @Controller annotation is still required for Spring MVC request mapping.
  */
 @Controller
 public class UiRedirectController {

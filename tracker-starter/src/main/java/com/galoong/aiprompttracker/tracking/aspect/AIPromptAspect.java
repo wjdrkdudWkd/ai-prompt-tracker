@@ -3,14 +3,12 @@ package com.galoong.aiprompttracker.tracking.aspect;
 import com.galoong.aiprompttracker.core.annotation.AIPrompt;
 import com.galoong.aiprompttracker.tracking.context.ExecutionContext;
 import com.galoong.aiprompttracker.tracking.context.TrackingContext;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.time.Instant;
@@ -22,11 +20,12 @@ import java.util.UUID;
  * This creates an Execution context for each method invocation,
  * regardless of return type. The actual AI calls are tracked
  * by interceptors (WebClient, RestTemplate, etc.).
+ *
+ * <p><b>Note:</b> This class is registered as a bean by AopConfig.
+ * Do not use @Component annotation to avoid relying on component scanning.
  */
 @Slf4j
 @Aspect
-@Component
-@RequiredArgsConstructor
 public class AIPromptAspect {
 
     @Value("${spring.profiles.active:dev}")

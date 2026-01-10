@@ -4,11 +4,10 @@ import com.galoong.aiprompttracker.api.config.ApiAutoConfiguration;
 import com.galoong.aiprompttracker.api.dto.ExecutionDetailResponse;
 import com.galoong.aiprompttracker.domain.entity.CallRecord;
 import com.galoong.aiprompttracker.domain.entity.ExecutionRecord;
-import com.galoong.aiprompttracker.domain.repository.CallRepositoryExtended;
-import com.galoong.aiprompttracker.domain.repository.ExecutionRepositoryExtended;
+import com.galoong.aiprompttracker.domain.repository.CallRepository;
+import com.galoong.aiprompttracker.domain.repository.ExecutionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -18,13 +17,13 @@ import java.util.stream.Collectors;
  * Service for execution-level queries
  */
 @Slf4j
-@Service
+// @Service removed - registered as bean in ApiAutoConfiguration
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ExecutionService {
 
-    private final ExecutionRepositoryExtended executionRepository;
-    private final CallRepositoryExtended callRepository;
+    private final ExecutionRepository executionRepository;
+    private final CallRepository callRepository;
     private final ApiAutoConfiguration.PersistenceGuard persistenceGuard;
 
     /**
