@@ -10,10 +10,21 @@ This document explains how the `ai-prompt-tracker-starter` module is published t
 
 ## 🔄 Versioning Strategy
 
-### Release Versions
+The project uses a **single source of truth** for versioning with no hardcoded versions in Gradle scripts.
+
+### Version Resolution Order
+
+1. **Command-line property** (highest priority): `-Pversion=X.Y.Z`
+2. **gradle.properties file**: Uncomment `version=X.Y.Z` for local override
+3. **Default**: `dev-SNAPSHOT` (for local development)
+
+### CI/CD Automated Versioning
+
+#### Release Versions
 - **Trigger**: Push a Git tag matching `v*.*.*` (e.g., `v0.1.0`, `v1.2.3`)
 - **Version**: Extracted from tag (e.g., tag `v0.1.0` → version `0.1.0`)
 - **Behavior**:
+  - GitHub Actions automatically passes `-Pversion=0.1.0` to Gradle
   - Publishes a release version (no `-SNAPSHOT` suffix)
   - Creates a GitHub Release with auto-generated changelog
   - Suitable for production use
@@ -22,24 +33,46 @@ This document explains how the `ai-prompt-tracker-starter` module is published t
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
-# → Publishes version 0.1.0
+# → GitHub Actions publishes version 0.1.0
 ```
 
-### Snapshot Versions
+#### Snapshot Versions
 - **Trigger**: Push to `main` branch
 - **Version**: `<latest-tag-version>-SNAPSHOT` (e.g., `0.1.0-SNAPSHOT`)
 - **Behavior**:
+  - GitHub Actions finds the latest tag and appends `-SNAPSHOT`
+  - Passes `-Pversion=0.1.0-SNAPSHOT` to Gradle
   - Publishes a snapshot version for testing
   - No GitHub Release created
   - Suitable for development/testing
+  - **Consumer benefit**: Dependencies using `0.1.0-SNAPSHOT` automatically get updates without version changes
 
 **Example**:
 ```bash
 git push origin main
-# → Publishes version 0.1.0-SNAPSHOT (based on latest tag v0.1.0)
+# → GitHub Actions publishes version 0.1.0-SNAPSHOT (based on latest tag v0.1.0)
 ```
 
 If no tags exist, publishes as `0.0.0-SNAPSHOT`.
+
+### Local Development Versioning
+
+For local builds without CI/CD:
+
+```bash
+# Default: dev-SNAPSHOT
+./gradlew build
+# → Builds with version "dev-SNAPSHOT"
+
+# Custom version via command line
+./gradlew build -Pversion=1.0.0
+# → Builds with version "1.0.0"
+
+# Custom version via gradle.properties
+# Edit gradle.properties: version=1.0.0-LOCAL
+./gradlew build
+# → Builds with version "1.0.0-LOCAL"
+```
 
 ## 🚀 How to Consume
 
@@ -200,10 +233,20 @@ GitHub Actions will publish a snapshot version based on the latest tag.
 To test publishing locally without actually publishing:
 
 ```bash
-# Test publication configuration
+# Test publication configuration (uses dev-SNAPSHOT)
 ./gradlew :tracker-starter:publishToMavenLocal
 
+# Test with specific version
+./gradlew :tracker-starter:publishToMavenLocal -Pversion=1.0.0-LOCAL
+
 # Check output in ~/.m2/repository/com/galoong/ai-prompt-tracker-starter/
+```
+
+To publish to a local repository for testing:
+
+```bash
+# Publishes to tracker-starter/build/repo/
+./gradlew :tracker-starter:publishMavenPublicationToLocalRepository -Pversion=1.0.0-TEST
 ```
 
 To publish to GitHub Packages manually (requires `GITHUB_TOKEN`):
@@ -212,8 +255,28 @@ To publish to GitHub Packages manually (requires `GITHUB_TOKEN`):
 export GITHUB_ACTOR="your-username"
 export GITHUB_TOKEN="your-token"
 
+# IMPORTANT: Always specify version when publishing
 ./gradlew :tracker-starter:publishMavenPublicationToGitHubPackagesRepository \
   -Pversion=0.1.0
+
+# The version will be logged:
+# 📦 Building: com.galoong:tracker-starter:0.1.0
+```
+
+### Version Verification
+
+To check what version will be built/published:
+
+```bash
+# Check resolved version
+./gradlew :tracker-starter:printVersion
+
+# Output: 📦 Building: com.galoong:tracker-starter:dev-SNAPSHOT
+
+# With custom version
+./gradlew :tracker-starter:printVersion -Pversion=1.2.3
+
+# Output: 📦 Building: com.galoong:tracker-starter:1.2.3
 ```
 
 ## ❓ Troubleshooting

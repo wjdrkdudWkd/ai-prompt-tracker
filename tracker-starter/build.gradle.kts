@@ -5,8 +5,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.galoong"
-version = "1.0.0-SNAPSHOT"
+// Group inherited from root project
+// Version inherited from root project (see build.gradle.kts in root)
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -73,6 +73,18 @@ tasks.named<Jar>("jar") {
     archiveClassifier.set("")
 }
 
+// Log version on build for visibility
+tasks.register("printVersion") {
+    doLast {
+        println("📦 Building: ${project.group}:${project.name}:${project.version}")
+    }
+}
+
+// Automatically print version before publishing
+tasks.withType<PublishToMavenRepository>().configureEach {
+    dependsOn("printVersion")
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {
@@ -80,6 +92,10 @@ publishing {
 
             // Explicit artifact ID
             artifactId = "ai-prompt-tracker-starter"
+
+            // Version is automatically inherited from project.version
+            // Set via: ./gradlew publish -Pversion=1.2.3
+            // or defined in gradle.properties
 
             // Publish resolved versions for dependencies
             versionMapping {

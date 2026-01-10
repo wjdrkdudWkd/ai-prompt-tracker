@@ -6,7 +6,12 @@ plugins {
 
 allprojects {
     group = "com.galoong"
-    version = "1.0.0-SNAPSHOT"
+
+    // Version resolution strategy (applies to all projects):
+    // 1. Use version from -Pversion=X.Y.Z if provided (CI/CD via command line)
+    // 2. Use version from gradle.properties if defined (local override)
+    // 3. Default to "dev-SNAPSHOT" for local development
+    version = findProperty("version")?.toString() ?: "dev-SNAPSHOT"
 
     repositories {
         mavenCentral()
