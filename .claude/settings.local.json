@@ -25,7 +25,9 @@
       "Bash(./gradlew :backend:test:*)",
       "Bash(./gradlew:*)",
       "Bash(test:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(jar tf:*)",
+      "Bash(javap:*)"
     ]
   }
 }

@@ -20,8 +20,12 @@ allprojects {
 
 subprojects {
     apply(plugin = "java")
-    apply(plugin = "org.springframework.boot")
     apply(plugin = "io.spring.dependency-management")
+
+    // Apply Spring Boot plugin only to application modules (backend), not library modules (tracker-starter)
+    if (project.name != "tracker-starter") {
+        apply(plugin = "org.springframework.boot")
+    }
 
     java {
         toolchain {

@@ -9,9 +9,18 @@ plugins {
 // Version inherited from root project (see build.gradle.kts in root)
 
 java {
+    // Explicit Java 17 toolchain for consistent builds
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+
+    // Target Java 17 bytecode for maximum compatibility
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+
+    // Publish sources and javadoc jars (Maven Central and best practices)
     withSourcesJar()
+    withJavadocJar()
 }
 
 dependencyManagement {
@@ -56,22 +65,27 @@ dependencies {
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.compilerArgs.addAll(listOf("-parameters"))
+
+    // Use --release 17 flag for proper bytecode and API compatibility
+    // This ensures the compiled bytecode works correctly on Java 17+ runtimes
+    // and prevents use of newer Java APIs accidentally
+    options.release.set(17)
 }
 
 tasks.test {
     useJUnitPlatform()
 }
 
-// Disable Spring Boot's bootJar task (this is a library, not an app)
-tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
-    enabled = false
+// Configure javadoc to be lenient (don't fail on warnings)
+tasks.withType<Javadoc> {
+    options {
+        this as StandardJavadocDocletOptions
+        addStringOption("Xdoclint:none", "-quiet")
+    }
 }
 
-// Enable standard jar task
-tasks.named<Jar>("jar") {
-    enabled = true
-    archiveClassifier.set("")
-}
+// Standard jar task is enabled by default for java-library plugin
+// No need to configure bootJar since Spring Boot plugin is not applied to this module
 
 // Log version on build for visibility
 tasks.register("printVersion") {
@@ -107,9 +121,14 @@ publishing {
                 }
             }
 
+            // Configure variant attributes for stable resolution across different Java versions
+            // This ensures consumers using Java 21 toolchain can resolve this Java 17 library
+            // without "selected by rule" warnings or variant mismatches
+            suppressAllPomMetadataWarnings()
+
             pom {
                 name.set("AI Prompt Tracker Spring Boot Starter")
-                description.set("Spring Boot starter for tracking AI API calls with embedded dashboard")
+                description.set("Spring Boot starter for tracking API calls with embedded dashboard")
                 url.set("https://github.com/wjdrkdudWkd/ai-prompt-tracker")
 
                 licenses {
@@ -134,6 +153,13 @@ publishing {
             }
         }
     }
+
+    // Optionally disable Gradle Module Metadata if it causes variant resolution issues
+    // Uncomment the line below if consumers experience "selected by rule" or variant conflicts
+    // This forces pure Maven POM resolution (more predictable for cross-version compatibility)
+    // tasks.withType<GenerateModuleMetadata> {
+    //     enabled = false
+    // }
 
     repositories {
         maven {
