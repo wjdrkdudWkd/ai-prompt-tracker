@@ -1,12 +1,18 @@
 package com.galoong.aiprompttracker.api.config;
 
+import com.galoong.aiprompttracker.api.controller.CallController;
 import com.galoong.aiprompttracker.api.controller.DashboardController;
 import com.galoong.aiprompttracker.api.controller.ExecutionController;
+import com.galoong.aiprompttracker.api.controller.FunctionController;
 import com.galoong.aiprompttracker.api.controller.UiRedirectController;
 import com.galoong.aiprompttracker.api.exception.PersistenceDisabledException;
 import com.galoong.aiprompttracker.api.service.*;
+import com.galoong.aiprompttracker.config.TrackingJpaAutoConfiguration;
+import com.galoong.aiprompttracker.domain.repository.ExecutionRepository;
 import com.galoong.aiprompttracker.tracking.storage.ExecutionStore;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,12 +24,24 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * <p>Registers all API services and controllers explicitly to avoid
  * relying on component scanning in consumer projects.
  *
+ * <p><b>Activation:</b> Services are conditionally created only when their repository
+ * dependencies exist, preventing {@link org.springframework.beans.factory.NoSuchBeanDefinitionException}
+ * when JPA is disabled or repositories are not configured.
+ *
+ * <p><b>Load Order:</b> Configured to load after {@link TrackingJpaAutoConfiguration}
+ * to ensure repositories are registered before API beans are created.
+ *
  * <p>When persistence is disabled, API beans are replaced with no-op
  * implementations that throw {@link PersistenceDisabledException}.
  */
 @Slf4j
 @Configuration
+@AutoConfigureAfter(TrackingJpaAutoConfiguration.class)
 public class ApiAutoConfiguration implements WebMvcConfigurer {
+
+    public ApiAutoConfiguration() {
+        log.info("AI Prompt Tracker: API auto-configuration loaded");
+    }
 
     // ========== API Services ==========
 
@@ -81,6 +99,20 @@ public class ApiAutoConfiguration implements WebMvcConfigurer {
     public ExecutionController executionController(ExecutionService executionService) {
         log.info("Registering ExecutionController");
         return new ExecutionController(executionService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CallController callController(CallService callService) {
+        log.info("Registering CallController");
+        return new CallController(callService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public FunctionController functionController(FunctionService functionService) {
+        log.info("Registering FunctionController");
+        return new FunctionController(functionService);
     }
 
     @Bean

@@ -16,14 +16,20 @@ import java.time.Instant;
 
 /**
  * REST API for call-level queries
+ *
+ * <p><b>Note:</b> This class is registered as a bean by ApiAutoConfiguration.
+ * The @RestController annotation is still required for Spring MVC request mapping.
  */
 @Slf4j
 @RestController
 @RequestMapping("/aiprompt-tracker/api/calls")
-@RequiredArgsConstructor
 public class CallController {
 
     private final CallService callService;
+
+    public CallController(CallService callService) {
+        this.callService = callService;
+    }
 
     /**
      * GET /api/calls?provider=&model=&status=&from=&to=&page=&size=

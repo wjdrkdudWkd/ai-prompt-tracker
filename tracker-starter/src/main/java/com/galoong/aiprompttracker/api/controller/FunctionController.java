@@ -18,14 +18,20 @@ import java.time.Instant;
 
 /**
  * REST API for function-level statistics
+ *
+ * <p><b>Note:</b> This class is registered as a bean by ApiAutoConfiguration.
+ * The @RestController annotation is still required for Spring MVC request mapping.
  */
 @Slf4j
 @RestController
 @RequestMapping("/aiprompt-tracker/api/functions")
-@RequiredArgsConstructor
 public class FunctionController {
 
     private final FunctionService functionService;
+
+    public FunctionController(FunctionService functionService) {
+        this.functionService = functionService;
+    }
 
     /**
      * GET /api/functions?from=&to=&env=&category=&status=&q=&page=&size=

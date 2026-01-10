@@ -24,7 +24,8 @@
       "Bash(./gradlew :tracker-starter:compileJava:*)",
       "Bash(./gradlew :backend:test:*)",
       "Bash(./gradlew:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(xargs cat:*)"
     ]
   }
 }
