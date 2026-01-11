@@ -21,8 +21,8 @@ import jakarta.persistence.EntityManager;
  *
  * <p><b>Automatic Entity and Repository Discovery:</b>
  * This configuration works seamlessly with Spring Boot's default JPA entity/repository scanning.
- * The starter registers its base package via {@link AiPromptTrackerAutoConfigPackageRegistrar},
- * which extends (rather than replaces) Spring Boot's AutoConfigurationPackages.
+ * The starter registers its base package via {@link com.galoong.aiprompttracker.autoconfigure.AiPromptTrackerJpaScanAutoConfiguration},
+ * which extends (rather than replaces) Spring Boot's AutoConfigurationPackages and EntityScanPackages.
  *
  * <p><b>Strategy - Pure AutoConfigurationPackages Extension:</b>
  * <ul>
@@ -63,8 +63,9 @@ import jakarta.persistence.EntityManager;
  *   <li>Consumer entities/repositories guaranteed to work</li>
  * </ul>
  *
- * @see AiPromptTrackerAutoConfigPackageRegistrar
+ * @see com.galoong.aiprompttracker.autoconfigure.AiPromptTrackerJpaScanAutoConfiguration
  * @see org.springframework.boot.autoconfigure.AutoConfigurationPackages
+ * @see org.springframework.boot.autoconfigure.domain.EntityScanPackages
  * @see org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
  * @see org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
  */

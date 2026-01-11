@@ -205,19 +205,33 @@ https://github.com/wjdrkdudWkd/ai-prompt-tracker/packages
 
 ## 🗄️ JPA Persistence Configuration
 
-### ✨ Plug-and-Play Repository Auto-Discovery
+### ✨ Plug-and-Play Entity and Repository Auto-Discovery
 
 The starter provides **true plug-and-play JPA persistence** with zero consumer-side configuration required.
 
 #### How It Works
 
-The starter automatically registers its base package (`com.galoong.aiprompttracker`) into Spring Boot's `AutoConfigurationPackages` via a custom `ImportBeanDefinitionRegistrar`. This extends (rather than replaces) Spring Boot's default JPA repository scanning.
+The starter uses an **AutoConfigurationPackages-only strategy** to ensure complete JPA auto-discovery:
+
+1. **AutoConfigurationPackages** - Spring Data JPA scans this for repositories
+2. **AutoConfigurationPackages** - Hibernate also scans this for entities (when EntityScanPackages is not set)
+
+The starter's package is appended to AutoConfigurationPackages automatically via a static `@Bean` `BeanFactoryPostProcessor` that executes early in the Spring lifecycle.
+
+**Why NOT EntityScanPackages?**
+- If EntityScanPackages exists, Hibernate scans ONLY those packages (ignoring AutoConfigurationPackages)
+- If the starter created EntityScanPackages, consumer entities would fail with "Not a managed type"
+- By only using AutoConfigurationPackages, both consumer and starter packages are scanned
 
 **Result:**
-- ✅ Your application's repositories are discovered automatically (default Spring Boot behavior)
-- ✅ Starter's repositories are discovered automatically (via AutoConfigurationPackages)
+- ✅ Your application's entities are discovered automatically
+- ✅ Your application's repositories are discovered automatically
+- ✅ Starter's entities are discovered automatically
+- ✅ Starter's repositories are discovered automatically
 - ✅ No `@EnableJpaRepositories` configuration needed
+- ✅ No `@EntityScan` configuration needed (unless you already use it)
 - ✅ No package conflicts or scanning interference
+- ✅ Consumer scanning is NEVER broken
 
 #### For Consumer Applications
 
@@ -240,26 +254,45 @@ public class YourApplication {
 }
 ```
 
-Both your repositories AND the starter's repositories are automatically discovered and registered. No additional annotations or configuration needed!
+Both your entities/repositories AND the starter's entities/repositories are automatically discovered and registered. No additional annotations or configuration needed!
 
 #### Technical Details
 
-**How AutoConfigurationPackages Works:**
+**AutoConfigurationPackages-Only Package Registration:**
 
-1. Starter registers `com.galoong.aiprompttracker` package via `AiPromptTrackerAutoConfigPackageRegistrar`
-2. Spring Boot's `JpaRepositoriesAutoConfiguration` scans:
+1. Static `@Bean` BeanFactoryPostProcessor executes **early** in Spring lifecycle
+2. Safely appends `com.galoong.aiprompttracker` to **AutoConfigurationPackages ONLY**
+   - NEVER touches EntityScanPackages (to avoid breaking consumer entity scanning)
+3. Spring Data JPA scans AutoConfigurationPackages for repositories:
    - Your application's base package (e.g., `com.yourcompany.yourapp`)
-   - Additional packages registered in `AutoConfigurationPackages` (including starter's package)
-3. All repositories from both locations are discovered and registered
+   - Starter's package (`com.galoong.aiprompttracker`)
+   - All repositories from both locations are discovered
+4. Hibernate JPA scans for entities:
+   - If EntityScanPackages exists: scans ONLY those packages (user-configured)
+   - If EntityScanPackages NOT set: falls back to AutoConfigurationPackages
+   - By not creating EntityScanPackages, we ensure both consumer and starter entities are discovered
+
+**Why NOT EntityScanPackages?**
+- Creating EntityScanPackages would cause Hibernate to ignore AutoConfigurationPackages
+- Consumer entities would fail with "Not a managed type" error
+- The safest approach is to only use AutoConfigurationPackages and let Hibernate fallback
 
 **Why This Approach?**
 
-Using `@EnableJpaRepositories` in a starter causes Spring Boot's `JpaRepositoriesAutoConfiguration` to completely back off, breaking consumer repository scanning. The AutoConfigurationPackages approach:
+Using `@EnableJpaRepositories` or `@EntityScan` in a starter causes Spring Boot's auto-configuration to completely back off, breaking consumer entity/repository scanning. The AutoConfigurationPackages-only approach:
 
 ✅ Extends Boot's scanning (doesn't replace it)
-✅ Consumer repositories work without any configuration
-✅ Starter repositories auto-discovered seamlessly
+✅ Consumer entities/repositories work without any configuration
+✅ Starter entities/repositories auto-discovered seamlessly
+✅ Never creates EntityScanPackages (avoids breaking entity scanning)
+✅ Ordering-independent via static @Bean
+✅ Never fails consumer startup (graceful degradation)
 ✅ Follows Spring Boot best practices for starters
+✅ Consumer scanning is GUARANTEED to never break
+
+**Troubleshooting:**
+
+If you encounter JPA scanning issues (e.g., "Not a managed type" errors), see [JPA_SCANNING_TROUBLESHOOTING.md](./JPA_SCANNING_TROUBLESHOOTING.md) for detailed diagnostic steps.
 
 #### Persistence Modes
 

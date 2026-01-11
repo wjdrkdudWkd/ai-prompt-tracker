@@ -15,22 +15,33 @@ import org.springframework.context.annotation.Import;
  * <p>Enables automatic tracking of AI API calls with @AIPrompt annotation.
  * Provides embedded dashboard UI at /aiprompt-tracker
  *
- * <p><b>Safe Repository Auto-Discovery:</b>
- * This configuration imports {@link AiPromptTrackerAutoConfigPackageRegistrar} which safely appends
- * the starter's base package to Spring Boot's {@code AutoConfigurationPackages}. The registrar uses
- * a {@link org.springframework.beans.factory.config.BeanFactoryPostProcessor} approach that:
+ * <p><b>Safe JPA Entity and Repository Auto-Discovery:</b>
+ * This configuration imports {@link AiPromptTrackerJpaScanAutoConfiguration} which registers a
+ * {@link org.springframework.beans.factory.config.BeanFactoryPostProcessor} as a static @Bean.
+ * The BFPP safely appends the starter's base package to BOTH:
  * <ul>
- *   <li><b>Never creates</b> AutoConfigurationPackages - only appends when it already exists</li>
- *   <li><b>Never interferes</b> with consumer entity/repository scanning</li>
- *   <li><b>Gracefully degrades</b> if AutoConfigurationPackages is not available</li>
- *   <li><b>Ordering-independent</b> - works regardless of auto-configuration load order</li>
+ *   <li><b>AutoConfigurationPackages</b> - for repository scanning by Spring Data JPA</li>
+ *   <li><b>EntityScanPackages</b> - for entity scanning by Hibernate JPA</li>
  * </ul>
  *
- * <p>This allows Spring Boot's default JPA repository scanning to automatically discover the starter's
- * repositories without requiring consumer-side {@code @EnableJpaRepositories} configuration while
- * guaranteeing consumer repositories/entities continue to work.
+ * <p><b>Dual-Registry Strategy Benefits:</b>
+ * <ul>
+ *   <li><b>Never creates registries</b> - only appends when registry already exists</li>
+ *   <li><b>Never replaces consumer packages</b> - pure append-only operation</li>
+ *   <li><b>Ordering-independent</b> - static @Bean ensures early execution</li>
+ *   <li><b>Graceful degradation</b> - skips if registry not available</li>
+ *   <li><b>Never fails consumer startup</b> - all operations wrapped in try-catch</li>
+ * </ul>
  *
- * @see AiPromptTrackerAutoConfigPackageRegistrar
+ * <p>This allows both consumer and starter entities/repositories to be discovered automatically
+ * without requiring {@code @EnableJpaRepositories} or {@code @EntityScan} configuration.
+ *
+ * <p><b>Troubleshooting:</b>
+ * Enable diagnostic mode with {@code ai-prompts.debug.scan=true} to see detailed package
+ * registration and entity discovery information.
+ *
+ * @see AiPromptTrackerJpaScanAutoConfiguration
+ * @see AiPromptTrackerJpaDiagnosticsAutoConfiguration
  */
 @Slf4j
 @AutoConfiguration
@@ -42,7 +53,8 @@ import org.springframework.context.annotation.Import;
     TrackingDemoProperties.class
 })
 @Import({
-    AiPromptTrackerAutoConfigPackageRegistrar.class,  // Register base package for repository scanning
+    AiPromptTrackerJpaScanAutoConfiguration.class,      // FIRST: Register packages for JPA scanning
+    AiPromptTrackerJpaDiagnosticsAutoConfiguration.class, // Diagnostic mode (conditional)
     TrackingCoreAutoConfiguration.class,
     TrackingOkHttpAutoConfiguration.class,
     TrackingPersistenceAutoConfiguration.class,
