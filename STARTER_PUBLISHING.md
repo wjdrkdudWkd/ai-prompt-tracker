@@ -278,6 +278,66 @@ ai-prompts:
       mode: jdbc  # Fully automatic - no @EnableJpaRepositories needed!
 ```
 
+#### Verification Steps
+
+To verify the auto-configuration is working correctly in a consumer application:
+
+**1. Check Spring Boot Condition Evaluation Report**
+
+Run your application with debug logging:
+
+```bash
+./gradlew bootRun --args='--debug' 2>&1 | grep -A5 "AiPromptTrackerAutoConfigPackageRegistrar"
+```
+
+You should see:
+```
+AI Prompt Tracker: appended 'com.galoong.aiprompttracker' to AutoConfigurationPackages
+```
+
+**2. Verify Repository Discovery**
+
+Check that both consumer and starter repositories are registered:
+
+```bash
+./gradlew bootRun --args='--debug' 2>&1 | grep "Creating shared instance of singleton bean"
+```
+
+Expected output should include:
+- Your consumer repositories (e.g., `wordEntryRepository`, `userRepository`, etc.)
+- Starter repositories: `executionRepository`, `callRepository`
+
+**3. Verify Entity Scanning**
+
+Check that entities from both packages are registered with JPA:
+
+```bash
+./gradlew bootRun --args='--debug' 2>&1 | grep "HHH000204"
+```
+
+Expected output:
+```
+HHH000204: Processing PersistenceUnitInfo [name: default]
+```
+
+Then verify no "Not a managed type" errors occur.
+
+**4. Test API Endpoints**
+
+Once the application starts, verify the dashboard is accessible:
+
+```bash
+curl http://localhost:8080/aiprompt-tracker/api/dashboard/summary
+```
+
+Should return JSON response (not a 500 error about missing repositories).
+
+**Common Issues:**
+
+- If starter repositories are NOT found: Check that `AiPromptTrackerAutoConfigPackageRegistrar` is being loaded
+- If consumer repositories are NOT found: This should never happen with the current implementation - please report as a bug
+- If entities show "Not a managed type": Check that `@EntityScan` is NOT present in `TrackingJpaAutoConfiguration`
+
 ## 🛠️ For Maintainers
 
 ### Publishing a Release

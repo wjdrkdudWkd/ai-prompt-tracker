@@ -15,11 +15,22 @@ import org.springframework.context.annotation.Import;
  * <p>Enables automatic tracking of AI API calls with @AIPrompt annotation.
  * Provides embedded dashboard UI at /aiprompt-tracker
  *
- * <p><b>Repository Auto-Discovery:</b>
- * This configuration imports {@link AiPromptTrackerAutoConfigPackageRegistrar} which registers
- * the starter's base package into Spring Boot's {@code AutoConfigurationPackages}. This allows
- * Spring Boot's default JPA repository scanning to automatically discover the starter's
- * repositories without requiring consumer-side {@code @EnableJpaRepositories} configuration.
+ * <p><b>Safe Repository Auto-Discovery:</b>
+ * This configuration imports {@link AiPromptTrackerAutoConfigPackageRegistrar} which safely appends
+ * the starter's base package to Spring Boot's {@code AutoConfigurationPackages}. The registrar uses
+ * a {@link org.springframework.beans.factory.config.BeanFactoryPostProcessor} approach that:
+ * <ul>
+ *   <li><b>Never creates</b> AutoConfigurationPackages - only appends when it already exists</li>
+ *   <li><b>Never interferes</b> with consumer entity/repository scanning</li>
+ *   <li><b>Gracefully degrades</b> if AutoConfigurationPackages is not available</li>
+ *   <li><b>Ordering-independent</b> - works regardless of auto-configuration load order</li>
+ * </ul>
+ *
+ * <p>This allows Spring Boot's default JPA repository scanning to automatically discover the starter's
+ * repositories without requiring consumer-side {@code @EnableJpaRepositories} configuration while
+ * guaranteeing consumer repositories/entities continue to work.
+ *
+ * @see AiPromptTrackerAutoConfigPackageRegistrar
  */
 @Slf4j
 @AutoConfiguration
