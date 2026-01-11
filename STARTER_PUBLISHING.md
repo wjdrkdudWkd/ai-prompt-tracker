@@ -203,6 +203,81 @@ Add `gradle.properties` to `.gitignore` if using this approach.
 View all published versions at:
 https://github.com/wjdrkdudWkd/ai-prompt-tracker/packages
 
+## 🗄️ JPA Persistence Configuration
+
+### ✨ Plug-and-Play Repository Auto-Discovery
+
+The starter provides **true plug-and-play JPA persistence** with zero consumer-side configuration required.
+
+#### How It Works
+
+The starter automatically registers its base package (`com.galoong.aiprompttracker`) into Spring Boot's `AutoConfigurationPackages` via a custom `ImportBeanDefinitionRegistrar`. This extends (rather than replaces) Spring Boot's default JPA repository scanning.
+
+**Result:**
+- ✅ Your application's repositories are discovered automatically (default Spring Boot behavior)
+- ✅ Starter's repositories are discovered automatically (via AutoConfigurationPackages)
+- ✅ No `@EnableJpaRepositories` configuration needed
+- ✅ No package conflicts or scanning interference
+
+#### For Consumer Applications
+
+**No Configuration Required!** Simply add the dependency:
+
+```gradle
+dependencies {
+    implementation("com.galoong:ai-prompt-tracker-starter:X.Y.Z")
+}
+```
+
+Your application works immediately:
+
+```java
+@SpringBootApplication
+public class YourApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(YourApplication.class, args);
+    }
+}
+```
+
+Both your repositories AND the starter's repositories are automatically discovered and registered. No additional annotations or configuration needed!
+
+#### Technical Details
+
+**How AutoConfigurationPackages Works:**
+
+1. Starter registers `com.galoong.aiprompttracker` package via `AiPromptTrackerAutoConfigPackageRegistrar`
+2. Spring Boot's `JpaRepositoriesAutoConfiguration` scans:
+   - Your application's base package (e.g., `com.yourcompany.yourapp`)
+   - Additional packages registered in `AutoConfigurationPackages` (including starter's package)
+3. All repositories from both locations are discovered and registered
+
+**Why This Approach?**
+
+Using `@EnableJpaRepositories` in a starter causes Spring Boot's `JpaRepositoriesAutoConfiguration` to completely back off, breaking consumer repository scanning. The AutoConfigurationPackages approach:
+
+✅ Extends Boot's scanning (doesn't replace it)
+✅ Consumer repositories work without any configuration
+✅ Starter repositories auto-discovered seamlessly
+✅ Follows Spring Boot best practices for starters
+
+#### Persistence Modes
+
+The starter supports different persistence modes via the `ai-prompts.tracking.persistence.mode` property:
+
+- `jdbc`: Full JPA persistence (auto-configured, works out of the box)
+- `memory`: In-memory storage (no database required)
+- `noop`: No persistence (tracking disabled)
+
+**Example application.yml**:
+
+```yaml
+ai-prompts:
+  tracking:
+    persistence:
+      mode: jdbc  # Fully automatic - no @EnableJpaRepositories needed!
+```
+
 ## 🛠️ For Maintainers
 
 ### Publishing a Release
