@@ -27,7 +27,8 @@
       "Bash(test:*)",
       "Bash(xargs cat:*)",
       "Bash(jar tf:*)",
-      "Bash(javap:*)"
+      "Bash(javap:*)",
+      "Bash(timeout 15 ./gradlew:*)"
     ]
   }
 }
