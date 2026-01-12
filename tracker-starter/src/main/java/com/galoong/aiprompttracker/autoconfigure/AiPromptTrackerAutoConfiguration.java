@@ -38,14 +38,14 @@ import org.springframework.context.annotation.Import;
  *
  * <p><b>Consumer with explicit @EntityScan:</b>
  * If consumer uses @EntityScan, they MUST include the starter entity package.
- * See {@link AiPromptTrackerJpaConsumerWarningsAutoConfiguration} for runtime warnings.
+ * See {@link AiPromptTrackerJpaScanAutoConfiguration} for dual-phase detection and warnings.
  *
  * <p><b>Troubleshooting:</b>
  * Enable diagnostic mode with {@code ai-prompts.debug.scan=true} to see detailed package
  * registration and entity discovery information.
  *
  * @see AiPromptTrackerJpaScanAutoConfiguration
- * @see AiPromptTrackerJpaConsumerWarningsAutoConfiguration
+ * @see EntityScanWarningState
  * @see AiPromptTrackerJpaDiagnosticsAutoConfiguration
  */
 @Slf4j

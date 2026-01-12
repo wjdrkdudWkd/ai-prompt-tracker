@@ -62,8 +62,8 @@ import jakarta.persistence.EntityManager;
  *     "com.galoong.aiprompttracker.domain.entity"  // Must add this!
  * })
  * </pre>
- * See {@link com.galoong.aiprompttracker.autoconfigure.AiPromptTrackerJpaConsumerWarningsAutoConfiguration}
- * for runtime detection and warnings.
+ * See {@link com.galoong.aiprompttracker.autoconfigure.AiPromptTrackerJpaScanAutoConfiguration}
+ * for dual-phase detection and warnings via {@link com.galoong.aiprompttracker.autoconfigure.EntityScanWarningState}.
  *
  * <p><b>Why This Approach is Safe:</b>
  * <ul>
@@ -72,11 +72,12 @@ import jakarta.persistence.EntityManager;
  *   <li>Never uses @EnableJpaRepositories (avoids disabling repository auto-configuration)</li>
  *   <li>Extends Boot's scanning mechanism without replacement</li>
  *   <li>Consumer entities/repositories guaranteed to work</li>
+ *   <li>Dual-phase warning detection ensures misconfigurations are caught</li>
  * </ul>
  *
  * @see com.galoong.aiprompttracker.autoconfigure.AiPromptTrackerJpaScanAutoConfiguration
  * @see com.galoong.aiprompttracker.autoconfigure.AiPromptTrackerAutoConfigPackageRegistrar
- * @see com.galoong.aiprompttracker.autoconfigure.AiPromptTrackerJpaConsumerWarningsAutoConfiguration
+ * @see com.galoong.aiprompttracker.autoconfigure.EntityScanWarningState
  * @see org.springframework.boot.autoconfigure.AutoConfigurationPackages
  * @see org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
  * @see org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration

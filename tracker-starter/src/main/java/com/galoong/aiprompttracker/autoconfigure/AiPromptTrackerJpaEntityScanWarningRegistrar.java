@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Detects when consumer uses explicit {@code @EntityScan} and warns if starter entity package is missing.
+ * Early-phase EntityScan detection mechanism via {@link ImportBeanDefinitionRegistrar}.
  *
  * <p><b>Problem We're Solving:</b>
  * When a consumer application uses {@code @EntityScan}, Spring Boot creates an {@link EntityScanPackages}
@@ -26,17 +26,28 @@ import java.util.stream.Collectors;
  *   <li><b>Solution:</b> Detect the issue and provide clear actionable warning</li>
  * </ul>
  *
+ * <p><b>Dual-Phase Detection Strategy:</b>
+ * This class is part of a dual-phase detection system:
+ * <ul>
+ *   <li><b>Phase 1 (Early):</b> THIS CLASS - runs during @Configuration processing</li>
+ *   <li><b>Phase 2 (Late):</b> {@link EntityScanWarningBeanFactoryPostProcessor} - runs after all bean definitions loaded</li>
+ * </ul>
+ *
  * <p><b>When This Runs:</b>
  * This registrar implements {@link ImportBeanDefinitionRegistrar} which runs EARLY during
- * {@code @Configuration} class processing, BEFORE Hibernate entity scanning. This is the right
- * time to check EntityScanPackages and warn the consumer.
+ * {@code @Configuration} class processing, BEFORE Hibernate entity scanning.
+ *
+ * <p><b>Limitation:</b>
+ * At this early stage, the EntityScanPackages bean definition may not exist yet (depending on
+ * configuration class scanning order). If detection fails here, the late-phase BFPP will catch it.
  *
  * <p><b>Detection Strategy:</b>
  * <ol>
  *   <li>Check if EntityScanPackages bean definition exists in registry</li>
  *   <li>If YES: Extract the list of packages consumer specified</li>
  *   <li>Check if our starter entity package is included</li>
- *   <li>If MISSING: Log detailed warning with exact copy-paste snippet</li>
+ *   <li>If MISSING: Log detailed warning via {@link EntityScanWarningState} (prevents duplicates)</li>
+ *   <li>If NOT FOUND: Silent (late phase will check)</li>
  * </ol>
  *
  * <p><b>Warning Content:</b>
@@ -80,14 +91,14 @@ import java.util.stream.Collectors;
  * </pre>
  *
  * @see EntityScanPackages
+ * @see EntityScanWarningState
+ * @see EntityScanWarningBeanFactoryPostProcessor
  * @see AiPromptTrackerAutoConfigPackageRegistrar
  * @see org.springframework.boot.autoconfigure.domain.EntityScan
  */
 @Slf4j
 public class AiPromptTrackerJpaEntityScanWarningRegistrar implements ImportBeanDefinitionRegistrar {
 
-    private static final String STARTER_ENTITY_PACKAGE = "com.galoong.aiprompttracker.domain.entity";
-    private static final String STARTER_BASE_PACKAGE = "com.galoong.aiprompttracker";
     private static final String ENTITY_SCAN_PACKAGES_BEAN_NAME = "entityScanPackages";
 
     @Override
@@ -112,18 +123,22 @@ public class AiPromptTrackerJpaEntityScanWarningRegistrar implements ImportBeanD
             }
 
             // Check if starter package is already included
-            boolean hasStarterPackage = entityScanPackages.stream()
-                    .anyMatch(pkg -> pkg.equals(STARTER_ENTITY_PACKAGE) ||
-                            pkg.equals(STARTER_BASE_PACKAGE) ||
-                            pkg.startsWith(STARTER_BASE_PACKAGE + "."));
+            boolean hasStarterPackage = EntityScanWarningState.hasStarterPackage(entityScanPackages);
 
             if (hasStarterPackage) {
                 log.info("AI Prompt Tracker: ✅ Starter entity package is included in @EntityScan - good!");
                 return;
             }
 
-            // Starter package is MISSING - log detailed warning
-            logMissingPackageWarning(entityScanPackages, importingClassMetadata);
+            // Starter package is MISSING - emit warning via shared state (prevents duplicates)
+            String consumerAppClassName = inferConsumerApplicationClassName(importingClassMetadata);
+            boolean emitted = EntityScanWarningState.tryEmitWarning(entityScanPackages, consumerAppClassName);
+
+            if (emitted) {
+                log.debug("AI Prompt Tracker: Warning emitted successfully in early phase");
+            } else {
+                log.debug("AI Prompt Tracker: Warning already emitted, skipping");
+            }
 
         } catch (Exception e) {
             log.debug("AI Prompt Tracker: Could not check EntityScanPackages (this is OK): {}", e.getMessage());
@@ -164,63 +179,6 @@ public class AiPromptTrackerJpaEntityScanWarningRegistrar implements ImportBeanD
             log.debug("AI Prompt Tracker: Could not extract EntityScanPackages list: {}", e.getMessage());
             return List.of();
         }
-    }
-
-    /**
-     * Logs a detailed warning when starter entity package is missing from @EntityScan.
-     *
-     * @param existingPackages the packages consumer specified in @EntityScan
-     * @param importingClassMetadata metadata about the importing configuration class (for inferring consumer package)
-     */
-    private void logMissingPackageWarning(List<String> existingPackages, AnnotationMetadata importingClassMetadata) {
-        log.warn("");
-        log.warn("╔═══════════════════════════════════════════════════════════════════════════════╗");
-        log.warn("║                              ⚠️  CONFIGURATION WARNING ⚠️                      ║");
-        log.warn("║              Starter Entities Will NOT Be Discovered by Hibernate             ║");
-        log.warn("╚═══════════════════════════════════════════════════════════════════════════════╝");
-        log.warn("");
-        log.warn("Your application uses @EntityScan which tells Hibernate to scan ONLY specific packages.");
-        log.warn("This overrides Spring Boot's default scanning (AutoConfigurationPackages).");
-        log.warn("");
-        log.warn("Current @EntityScan packages:");
-        existingPackages.forEach(pkg -> log.warn("  • {}", pkg));
-        log.warn("");
-        log.warn("Missing: {}", STARTER_ENTITY_PACKAGE);
-        log.warn("");
-        log.warn("═══════════════════════════════════════════════════════════════════════════════");
-        log.warn("SOLUTION: Add starter entity package to your @EntityScan:");
-        log.warn("═══════════════════════════════════════════════════════════════════════════════");
-        log.warn("");
-
-        // Infer consumer application class name if possible
-        String consumerAppClassName = inferConsumerApplicationClassName(importingClassMetadata);
-
-        log.warn("@SpringBootApplication");
-        log.warn("@EntityScan(basePackages = {");
-
-        // Show existing packages
-        existingPackages.forEach(pkg -> log.warn("    \"{}\",", pkg));
-
-        // Add starter package
-        log.warn("    \"{}\"  // Add this line!", STARTER_ENTITY_PACKAGE);
-
-        log.warn("})");
-        log.warn("public class {} {{", consumerAppClassName);
-        log.warn("    public static void main(String[] args) {");
-        log.warn("        SpringApplication.run({}.class, args);", consumerAppClassName);
-        log.warn("    }");
-        log.warn("}");
-        log.warn("");
-        log.warn("═══════════════════════════════════════════════════════════════════════════════");
-        log.warn("IMPACT:");
-        log.warn("  • Starter entities (Execution, Call) will NOT be managed by JPA");
-        log.warn("  • Starter repositories (ExecutionRepository, CallRepository) may fail");
-        log.warn("  • Application may fail at runtime if persistence mode requires starter entities");
-        log.warn("");
-        log.warn("To verify this is correctly configured, enable diagnostic mode:");
-        log.warn("  ai-prompts.debug.scan=true");
-        log.warn("═══════════════════════════════════════════════════════════════════════════════");
-        log.warn("");
     }
 
     /**
