@@ -58,8 +58,7 @@ import org.springframework.context.annotation.Import;
     TrackingDemoProperties.class
 })
 @Import({
-    AiPromptTrackerJpaScanAutoConfiguration.class,           // FIRST: Register packages for JPA scanning (early!)
-    AiPromptTrackerJpaConsumerWarningsAutoConfiguration.class, // Warn about explicit @EntityScan issues
+    AiPromptTrackerJpaScanAutoConfiguration.class,           // FIRST: Register packages + warn about @EntityScan (early!)
     AiPromptTrackerJpaDiagnosticsAutoConfiguration.class,    // Diagnostic mode (conditional)
     TrackingCoreAutoConfiguration.class,
     TrackingOkHttpAutoConfiguration.class,

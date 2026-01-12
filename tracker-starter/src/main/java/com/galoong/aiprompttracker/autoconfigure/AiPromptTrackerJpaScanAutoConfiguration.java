@@ -10,14 +10,18 @@ import org.springframework.context.annotation.Import;
 /**
  * Auto-configuration for JPA entity and repository scanning.
  *
- * <p><b>CRITICAL - Early Package Registration:</b>
- * This configuration imports {@link AiPromptTrackerAutoConfigPackageRegistrar} which implements
- * {@link org.springframework.context.annotation.ImportBeanDefinitionRegistrar}.
+ * <p><b>CRITICAL - Early Package Registration + Warning:</b>
+ * This configuration imports two {@link org.springframework.context.annotation.ImportBeanDefinitionRegistrar}s:
+ * <ol>
+ *   <li>{@link AiPromptTrackerAutoConfigPackageRegistrar} - Registers starter package to AutoConfigurationPackages</li>
+ *   <li>{@link AiPromptTrackerJpaEntityScanWarningRegistrar} - Warns if explicit @EntityScan excludes starter package</li>
+ * </ol>
  *
  * <p><b>Why ImportBeanDefinitionRegistrar?</b>
  * <ul>
  *   <li><b>Timing</b>: Runs EARLY during @Configuration class processing</li>
  *   <li><b>BEFORE repository scanning</b>: Repository scanning sees the updated AutoConfigurationPackages</li>
+ *   <li><b>BEFORE entity scanning</b>: Can detect EntityScanPackages and warn consumer</li>
  *   <li><b>NOT BeanFactoryPostProcessor</b>: BFPP runs too late (after repository scanning)</li>
  * </ul>
  *
@@ -73,7 +77,10 @@ import org.springframework.context.annotation.Import;
         JpaRepositoriesAutoConfiguration.class,
         HibernateJpaAutoConfiguration.class
 })
-@Import(AiPromptTrackerAutoConfigPackageRegistrar.class)
+@Import({
+        AiPromptTrackerAutoConfigPackageRegistrar.class,      // Register starter package early
+        AiPromptTrackerJpaEntityScanWarningRegistrar.class    // Warn if explicit @EntityScan missing starter package
+})
 public class AiPromptTrackerJpaScanAutoConfiguration {
 
     public AiPromptTrackerJpaScanAutoConfiguration() {
