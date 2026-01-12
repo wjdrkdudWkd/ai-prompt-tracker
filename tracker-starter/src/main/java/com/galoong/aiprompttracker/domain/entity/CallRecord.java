@@ -11,14 +11,15 @@ import java.time.Instant;
 /**
  * Call record entity - tracks a single AI API HTTP call.
  * Multiple calls can belong to one execution.
+ *
+ * <p><b>Schema Management:</b>
+ * Indexes are managed by Flyway migrations (V1__create_schema_h2.sql) to avoid
+ * conflicts when both Flyway and Hibernate ddl-auto are enabled.
+ * When using Hibernate-only mode (flyway.enabled=false), Hibernate will create
+ * the table but without indexes unless explicitly added via ddl-auto scripts.
  */
 @Entity
-@Table(name = "calls", indexes = {
-        @Index(name = "idx_calls_execution", columnList = "execution_id"),
-        @Index(name = "idx_calls_provider", columnList = "provider"),
-        @Index(name = "idx_calls_created_at", columnList = "created_at"),
-        @Index(name = "idx_calls_status", columnList = "status")
-})
+@Table(name = "calls")
 @Data
 @Builder
 @NoArgsConstructor

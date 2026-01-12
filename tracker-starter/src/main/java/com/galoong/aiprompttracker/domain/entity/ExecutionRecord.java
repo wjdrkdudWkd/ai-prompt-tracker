@@ -11,14 +11,15 @@ import java.time.Instant;
 /**
  * Execution record entity - tracks a single @AIPrompt method execution.
  * One execution can contain multiple AI API calls.
+ *
+ * <p><b>Schema Management:</b>
+ * Indexes are managed by Flyway migrations (V1__create_schema_h2.sql) to avoid
+ * conflicts when both Flyway and Hibernate ddl-auto are enabled.
+ * When using Hibernate-only mode (flyway.enabled=false), Hibernate will create
+ * the table but without indexes unless explicitly added via ddl-auto scripts.
  */
 @Entity
-@Table(name = "executions", indexes = {
-        @Index(name = "idx_executions_function", columnList = "function_name"),
-        @Index(name = "idx_executions_started_at", columnList = "started_at"),
-        @Index(name = "idx_executions_environment", columnList = "environment"),
-        @Index(name = "idx_executions_status", columnList = "status")
-})
+@Table(name = "executions")
 @Data
 @Builder
 @NoArgsConstructor

@@ -162,9 +162,15 @@ public class CustomerService {
 - 비용이 자동 계산됩니다
 - Dashboard에서 실시간 확인 가능합니다
 
-## API 문서
+## 문서
 
-### 주요 엔드포인트
+### 설정 가이드
+- [Schema Management Guide](./docs/SCHEMA_MANAGEMENT.md) - Flyway vs Hibernate 스키마 관리 모드 선택 가이드
+- [JPA Scanning Guide](./docs/JPA_SCANNING_SOLUTION_SUMMARY.md) - JPA 엔티티 스캔 동작 원리
+
+### API 문서
+
+#### 주요 엔드포인트
 
 - `GET /api/dashboard/stats` - 전체 통계
 - `GET /api/dashboard/functions` - 함수별 통계

@@ -60,6 +60,7 @@ import org.springframework.context.annotation.Import;
 @Import({
     AiPromptTrackerJpaScanAutoConfiguration.class,           // FIRST: Register packages + warn about @EntityScan (early!)
     AiPromptTrackerJpaDiagnosticsAutoConfiguration.class,    // Diagnostic mode (conditional)
+    AiPromptTrackerSchemaManagementAutoConfiguration.class,  // Schema conflict detection
     TrackingCoreAutoConfiguration.class,
     TrackingOkHttpAutoConfiguration.class,
     TrackingPersistenceAutoConfiguration.class,
