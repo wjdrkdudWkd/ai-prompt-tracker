@@ -37,7 +37,9 @@
       "Bash(nvm install:*)",
       "Bash(git rm:*)",
       "Bash(git ls-tree:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(npm ci:*)"
     ]
   }
 }

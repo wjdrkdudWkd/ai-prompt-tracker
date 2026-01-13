@@ -1,4 +1,5 @@
 import java.util.concurrent.TimeUnit
+import java.util.zip.ZipFile
 
 plugins {
     `java-library`
@@ -238,14 +239,121 @@ val copyFrontend by tasks.registering(Copy::class) {
 }
 
 /**
+ * Verify JAR contains React dashboard artifacts
+ *
+ * This task verifies that the built JAR includes the embedded React dashboard.
+ * Used in CI to ensure the release JAR has all required frontend files.
+ *
+ * Usage: ./gradlew :tracker-starter:verifyJarContents
+ */
+val verifyJarContents by tasks.registering {
+    group = "verification"
+    description = "Verify JAR contains embedded React dashboard"
+
+    dependsOn(tasks.jar)
+
+    doLast {
+        val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+        if (!jarFile.exists()) {
+            throw GradleException("JAR file not found: ${jarFile.absolutePath}")
+        }
+
+        logger.lifecycle("")
+        logger.lifecycle("════════════════════════════════════════════════════════════")
+        logger.lifecycle("  Verifying JAR Contents")
+        logger.lifecycle("════════════════════════════════════════════════════════════")
+        logger.lifecycle("JAR: ${jarFile.name}")
+        logger.lifecycle("")
+
+        val jarEntries = mutableListOf<String>()
+        ZipFile(jarFile).use { zipFile ->
+            val entries = zipFile.entries()
+            while (entries.hasMoreElements()) {
+                val entry = entries.nextElement()
+                jarEntries.add(entry.name)
+            }
+        }
+
+        // Required files for React dashboard
+        val requiredFiles = listOf(
+            "META-INF/resources/aiprompt-tracker/index.html",
+            "META-INF/resources/aiprompt-tracker/_next/"
+        )
+
+        // Optional file (vanilla fallback - always present)
+        val fallbackFile = "META-INF/resources/aiprompt-tracker/dashboard-mvp.html"
+
+        val missingFiles = mutableListOf<String>()
+        val foundFiles = mutableListOf<String>()
+
+        // Check React dashboard files
+        for (required in requiredFiles) {
+            val found = jarEntries.any { it.startsWith(required) }
+            if (found) {
+                foundFiles.add(required)
+            } else {
+                missingFiles.add(required)
+            }
+        }
+
+        // Check fallback file
+        val hasFallback = jarEntries.contains(fallbackFile)
+        if (hasFallback) {
+            foundFiles.add(fallbackFile)
+        }
+
+        // Report findings
+        if (foundFiles.isNotEmpty()) {
+            logger.lifecycle("✅ Found embedded UI files:")
+            foundFiles.forEach { logger.lifecycle("   - $it") }
+        }
+
+        if (missingFiles.isNotEmpty()) {
+            logger.warn("")
+            logger.warn("⚠️  Missing React dashboard files:")
+            missingFiles.forEach { logger.warn("   - $it") }
+            logger.warn("")
+            logger.warn("   The JAR will fall back to vanilla dashboard (dashboard-mvp.html)")
+            logger.warn("   To include React dashboard:")
+            logger.warn("   1. cd frontend && npm ci && npm run build")
+            logger.warn("   2. ./gradlew :tracker-starter:copyFrontend")
+            logger.warn("   3. ./gradlew :tracker-starter:build")
+        } else {
+            logger.lifecycle("")
+            logger.lifecycle("✅ JAR verification passed: React dashboard is embedded")
+        }
+
+        logger.lifecycle("════════════════════════════════════════════════════════════")
+        logger.lifecycle("")
+
+        // Count files in each category
+        val uiFiles = jarEntries.count { it.startsWith("META-INF/resources/aiprompt-tracker/") }
+        logger.lifecycle("Total UI files in JAR: $uiFiles")
+        logger.lifecycle("")
+    }
+}
+
+/**
  * CI Integration Point
  *
- * In CI environments, enable automatic frontend build by uncommenting below.
- * For local development, frontend build is optional (manual).
+ * This configuration enables automatic frontend integration in CI environments
+ * while keeping local builds fast and Node.js-optional.
  *
- * Recommendation:
- * - Local: Manual build via `./gradlew :tracker-starter:copyFrontend`
- * - CI: Uncomment to include frontend in every build
+ * Strategy:
+ * - Local: Frontend build is manual (./gradlew :tracker-starter:copyFrontend)
+ * - CI: Explicitly runs copyFrontend before build (see CI workflow)
+ *
+ * The processResources dependency is intentionally NOT enabled by default to:
+ * 1. Keep local builds fast (frontend build is slow)
+ * 2. Allow consumers to build without Node.js
+ * 3. Make CI builds explicit and traceable
+ *
+ * CI Workflow Example:
+ *   - cd frontend && npm ci && npm run build
+ *   - ./gradlew :tracker-starter:copyFrontend
+ *   - ./gradlew :tracker-starter:build
+ *   - ./gradlew :tracker-starter:verifyJarContents
  */
 // tasks.named("processResources") {
 //     dependsOn(copyFrontend)

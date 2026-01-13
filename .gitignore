@@ -62,7 +62,9 @@ frontend/.eslintcache
 # These should only be generated in CI and embedded into the JAR
 # Local development should not commit these
 tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/*.html
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/*.txt
 tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/*.json
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/404/
 tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/_next/
 tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/calls/
 tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/dashboard/

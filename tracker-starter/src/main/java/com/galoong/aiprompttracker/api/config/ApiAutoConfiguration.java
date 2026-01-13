@@ -8,12 +8,14 @@ import com.galoong.aiprompttracker.api.controller.UiRedirectController;
 import com.galoong.aiprompttracker.api.exception.PersistenceDisabledException;
 import com.galoong.aiprompttracker.api.service.*;
 import com.galoong.aiprompttracker.config.TrackingJpaAutoConfiguration;
+import com.galoong.aiprompttracker.config.properties.TrackingUiProperties;
 import com.galoong.aiprompttracker.domain.repository.ExecutionRepository;
 import com.galoong.aiprompttracker.tracking.storage.ExecutionStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -37,6 +39,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Slf4j
 @Configuration
 @AutoConfigureAfter(TrackingJpaAutoConfiguration.class)
+@EnableConfigurationProperties(TrackingUiProperties.class)
 public class ApiAutoConfiguration implements WebMvcConfigurer {
 
     public ApiAutoConfiguration() {
@@ -117,9 +120,9 @@ public class ApiAutoConfiguration implements WebMvcConfigurer {
 
     @Bean
     @ConditionalOnMissingBean
-    public UiRedirectController uiRedirectController() {
-        log.info("Registering UiRedirectController");
-        return new UiRedirectController();
+    public UiRedirectController uiRedirectController(TrackingUiProperties uiProperties) {
+        log.info("Registering UiRedirectController (UI enabled: {})", uiProperties.isEnabled());
+        return new UiRedirectController(uiProperties);
     }
 
     // ========== Helper Beans ==========

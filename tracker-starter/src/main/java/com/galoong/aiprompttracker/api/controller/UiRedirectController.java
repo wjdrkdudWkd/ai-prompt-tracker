@@ -1,8 +1,10 @@
 package com.galoong.aiprompttracker.api.controller;
 
+import com.galoong.aiprompttracker.config.properties.TrackingUiProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -31,6 +33,12 @@ import java.nio.charset.StandardCharsets;
  */
 @Controller
 public class UiRedirectController {
+
+    private final TrackingUiProperties uiProperties;
+
+    public UiRedirectController(TrackingUiProperties uiProperties) {
+        this.uiProperties = uiProperties;
+    }
 
     /**
      * SPA fallback: Forward all non-API, non-static requests to dashboard HTML
@@ -62,6 +70,31 @@ public class UiRedirectController {
         // DO NOT intercept API requests
         if (path.startsWith("/aiprompt-tracker/api/")) {
             return null; // Let Spring MVC continue to REST controllers
+        }
+
+        // Check if UI is disabled (API-only mode)
+        if (!uiProperties.isEnabled()) {
+            String message = "<!DOCTYPE html>" +
+                "<html><head><title>AI Prompt Tracker - API Only Mode</title></head>" +
+                "<body style='font-family: system-ui; padding: 40px; max-width: 800px; margin: 0 auto;'>" +
+                "<h1>AI Prompt Tracker - API Only Mode</h1>" +
+                "<p>The embedded dashboard is disabled.</p>" +
+                "<p>API endpoints are still accessible at <code>/aiprompt-tracker/api/**</code></p>" +
+                "<h2>To enable the embedded UI:</h2>" +
+                "<pre style='background: #f5f5f5; padding: 15px; border-radius: 5px;'>" +
+                "ai-prompts:\n" +
+                "  tracking:\n" +
+                "    ui:\n" +
+                "      enabled: true  # Enable embedded dashboard" +
+                "</pre>" +
+                "<h2>For standalone UI deployment:</h2>" +
+                "<p>Deploy the frontend separately and set <code>NEXT_PUBLIC_API_BASE_URL</code> to point to this server.</p>" +
+                "</body></html>";
+
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.TEXT_HTML)
+                .body(message);
         }
 
         // DO NOT intercept static assets (let Spring Boot serve them)
