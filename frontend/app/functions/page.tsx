@@ -57,7 +57,7 @@ export default function FunctionsPage() {
                     <tr
                       key={func.functionName}
                       className="cursor-pointer border-b border-border transition-colors hover:bg-accent"
-                      onClick={() => router.push(`/functions/${encodeURIComponent(func.functionName)}`)}
+                      onClick={() => router.push(`/aiprompt-tracker/functions/detail?name=${encodeURIComponent(func.functionName)}`)}
                     >
                       <td className="py-3 font-medium">{func.functionName}</td>
                       <td className="py-3">

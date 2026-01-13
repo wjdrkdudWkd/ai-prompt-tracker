@@ -1,8 +1,13 @@
 /**
  * Base API client with fetch wrapper
+ *
+ * API_BASE_URL Configuration:
+ * - Embedded mode (default): "" (same-origin, calls /aiprompt-tracker/api/*)
+ * - Standalone dev: "http://localhost:8080"
+ * - Standalone prod: Set NEXT_PUBLIC_API_BASE_URL env var
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 export class ApiError extends Error {
   constructor(

@@ -29,7 +29,12 @@
       "Bash(jar tf:*)",
       "Bash(javap:*)",
       "Bash(timeout 15 ./gradlew:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(npm run build:*)",
+      "Bash(node --version:*)",
+      "Bash(SKIP_ENV_VALIDATION=true npm run build:*)",
+      "Bash(nvm list:*)",
+      "Bash(nvm install:*)"
     ]
   }
 }

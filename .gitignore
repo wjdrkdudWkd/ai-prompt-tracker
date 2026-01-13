@@ -52,8 +52,26 @@ logs/
 # Node (Frontend)
 frontend/node_modules/
 frontend/dist/
+frontend/out/
+frontend/.next/
 frontend/.env
 frontend/.env.local
+frontend/.eslintcache
+
+# Frontend build artifacts copied to starter
+# These should only be generated in CI and embedded into the JAR
+# Local development should not commit these
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/*.html
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/*.json
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/_next/
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/calls/
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/dashboard/
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/functions/
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/providers/
+tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/settings/
+
+# Exception: Keep vanilla fallback dashboard
+!tracker-starter/src/main/resources/META-INF/resources/aiprompt-tracker/dashboard-mvp.html
 
 # Docker
 docker-compose.override.yml

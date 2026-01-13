@@ -7,14 +7,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}/aiprompt-tracker/api/:path*`,
-      },
-    ];
-  },
+  // Note: rewrites() is ignored in 'export' mode
+  // API calls will be made to same-origin /aiprompt-tracker/api/* when embedded
+  // or to NEXT_PUBLIC_API_BASE_URL when deployed separately
 };
 
 module.exports = nextConfig;
