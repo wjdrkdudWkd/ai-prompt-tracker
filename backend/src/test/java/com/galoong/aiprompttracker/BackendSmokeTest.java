@@ -30,11 +30,22 @@ class BackendSmokeTest {
         ResponseEntity<String> response = restTemplate.getForEntity("/aiprompt-tracker/", String.class);
 
         // Then: Should return 200 OK with HTML content
+        // Note: Accepts BOTH React dashboard AND vanilla fallback (dashboard-mvp.html)
+        // This ensures zero-config principle - starter works without frontend build
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody())
             .isNotNull()
-            .contains("AI Prompt Tracker")
-            .contains("<!DOCTYPE html>");
+            .containsIgnoringCase("<!DOCTYPE html>");
+
+        // Log which UI is being served for diagnostic purposes
+        String body = response.getBody();
+        if (body != null) {
+            if (body.contains("__next") || body.contains("_next")) {
+                System.out.println("✅ Serving React dashboard (embedded build)");
+            } else {
+                System.out.println("✅ Serving vanilla fallback (dashboard-mvp.html)");
+            }
+        }
     }
 
     @Test

@@ -1,8 +1,15 @@
 package com.galoong.aiprompttracker.api.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Controller to handle React SPA routing for embedded dashboard.
@@ -26,10 +33,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class UiRedirectController {
 
     /**
-     * SPA fallback: Forward all non-API, non-static requests to index.html
+     * SPA fallback: Forward all non-API, non-static requests to dashboard HTML
      *
      * This handles:
-     * - /aiprompt-tracker/ → index.html
+     * - /aiprompt-tracker/ → index.html (React, preferred) or dashboard-mvp.html (vanilla fallback)
      * - /aiprompt-tracker/dashboard/ → index.html (React Router takes over)
      * - /aiprompt-tracker/functions/ → index.html
      * etc.
@@ -37,13 +44,19 @@ public class UiRedirectController {
      * Excludes:
      * - /aiprompt-tracker/api/** (handled by REST controllers)
      * - *.js, *.css, *.png, etc. (static assets)
+     *
+     * Zero-Config Principle:
+     * - If index.html exists (React dashboard built): use it
+     * - If index.html missing (no frontend build): fall back to dashboard-mvp.html
      */
-    @GetMapping({
-        "/aiprompt-tracker",
-        "/aiprompt-tracker/",
-        "/aiprompt-tracker/**"
-    })
-    public String handleSpaRouting(HttpServletRequest request) {
+    @GetMapping(
+        value = {
+            "/aiprompt-tracker",
+            "/aiprompt-tracker/",
+            "/aiprompt-tracker/**"
+        }
+    )
+    public Object handleSpaRouting(HttpServletRequest request) throws IOException {
         String path = request.getRequestURI();
 
         // DO NOT intercept API requests
@@ -51,19 +64,43 @@ public class UiRedirectController {
             return null; // Let Spring MVC continue to REST controllers
         }
 
-        // DO NOT intercept static assets (these are served by ResourceHttpRequestHandler)
-        // Files with extensions are assumed to be static assets
+        // DO NOT intercept static assets (let Spring Boot serve them)
+        // Files with extensions OTHER than HTML routes are static assets
         if (path.contains(".") && !path.endsWith("/")) {
-            // Has extension and not a directory - let static resource handler serve it
             int lastSlash = path.lastIndexOf('/');
             int lastDot = path.lastIndexOf('.');
             if (lastDot > lastSlash) {
-                // Extension comes after last slash - this is a file request
+                // Has extension after last slash
+                String extension = path.substring(lastDot);
+                // Only intercept routes without extensions or directory-like paths
+                // Let .js, .css, .png, .ico, etc. be served by static resource handler
+                if (!extension.equals(".html") && !extension.equals(".htm")) {
+                    return null; // Not an HTML file, let static handler serve it
+                }
+                // .html files: let them be served by static handler too
                 return null;
             }
         }
 
-        // All other paths: forward to React SPA index.html
-        return "forward:/aiprompt-tracker/index.html";
+        // All SPA routes (no extension, or directory paths): serve dashboard HTML
+        // Prefer React dashboard (index.html), fall back to vanilla (dashboard-mvp.html)
+        Resource indexHtml = new ClassPathResource("META-INF/resources/aiprompt-tracker/index.html");
+        if (indexHtml.exists()) {
+            // React dashboard available
+            return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .body(indexHtml);
+        }
+
+        // Fallback to vanilla dashboard (always present)
+        Resource fallbackHtml = new ClassPathResource("META-INF/resources/aiprompt-tracker/dashboard-mvp.html");
+        if (fallbackHtml.exists()) {
+            return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .body(fallbackHtml);
+        }
+
+        // Neither dashboard available (should never happen)
+        return ResponseEntity.notFound().build();
     }
 }

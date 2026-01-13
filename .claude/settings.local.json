@@ -34,7 +34,10 @@
       "Bash(node --version:*)",
       "Bash(SKIP_ENV_VALIDATION=true npm run build:*)",
       "Bash(nvm list:*)",
-      "Bash(nvm install:*)"
+      "Bash(nvm install:*)",
+      "Bash(git rm:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

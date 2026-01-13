@@ -96,6 +96,7 @@ fun isNodeAvailable(): Boolean {
 - ✅ Uses `ProcessBuilder` directly (Java API)
 - ✅ Graceful timeout (5 seconds)
 - ✅ Returns boolean (type-safe)
+- ✅ Proper import at top of file (no IDE red lines)
 
 ---
 
@@ -308,13 +309,15 @@ Type mismatch: inferred type is ExecResult but Int was expected
 
 **Solution**: Use `ProcessBuilder` in a helper function
 ```kotlin
+import java.util.concurrent.TimeUnit  // ✅ Add at top of build.gradle.kts
+
 fun isNodeAvailable(): Boolean {
     return try {
         val process = ProcessBuilder("node", "--version")
             .redirectOutput(ProcessBuilder.Redirect.PIPE)
             .redirectError(ProcessBuilder.Redirect.PIPE)
             .start()
-        process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+        process.waitFor(5, TimeUnit.SECONDS)  // ✅ Use imported TimeUnit
         process.exitValue() == 0
     } catch (e: Exception) {
         false
@@ -324,7 +327,37 @@ fun isNodeAvailable(): Boolean {
 
 ---
 
-### Issue 2: Frontend Build Artifacts Committed to Git
+### Issue 2: IDE Red Underline on `java.util.concurrent.TimeUnit`
+
+**Error**: IDE shows red underline on fully-qualified class references
+
+**Cause**: Kotlin DSL prefers explicit imports over fully-qualified names
+
+**Solution**: Add import at the top of `build.gradle.kts`
+```kotlin
+import java.util.concurrent.TimeUnit
+
+plugins {
+    `java-library`
+    // ...
+}
+
+// Now use TimeUnit directly
+fun isNodeAvailable(): Boolean {
+    // ...
+    process.waitFor(5, TimeUnit.SECONDS)  // ✅ No red underline
+    // ...
+}
+```
+
+**Why This Works**:
+- ✅ Kotlin DSL parsing works correctly with imports
+- ✅ No IDE errors
+- ✅ Cleaner, more idiomatic code
+
+---
+
+### Issue 3: Frontend Build Artifacts Committed to Git
 
 **Problem**: `frontend/out/` or copied files in `tracker-starter/src/main/resources/` are committed
 
@@ -345,7 +378,7 @@ git status  # Should not show build artifacts
 
 ---
 
-### Issue 3: CI Build Fails Without Frontend
+### Issue 4: CI Build Fails Without Frontend
 
 **Problem**: CI tries to build starter but frontend is missing
 
@@ -369,7 +402,7 @@ git status  # Should not show build artifacts
 
 ---
 
-### Issue 4: Local Build Includes Stale Frontend
+### Issue 5: Local Build Includes Stale Frontend
 
 **Problem**: Old frontend build is embedded in JAR
 
