@@ -42,7 +42,8 @@
       "Bash(npm ci:*)",
       "Bash(npm install:*)",
       "Bash(NODE_ENV=production npm ci:*)",
-      "Bash(NODE_ENV=production npm run build:*)"
+      "Bash(NODE_ENV=production npm run build:*)",
+      "Bash(unzip:*)"
     ]
   }
 }

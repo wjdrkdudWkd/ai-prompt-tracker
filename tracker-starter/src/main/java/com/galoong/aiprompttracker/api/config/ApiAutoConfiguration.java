@@ -143,37 +143,32 @@ public class ApiAutoConfiguration implements WebMvcConfigurer {
     // ========== Resource Handling ==========
 
     /**
-     * Configure static resource handling with explicit priority.
+     * Configure static resource handling for embedded React dashboard.
      *
-     * <p>CRITICAL: Static resources (_next/**, *.js, *.css, etc.) MUST be handled
-     * BEFORE the UiRedirectController's catch-all /** mapping. This ensures that:
-     * <ul>
-     *   <li>/aiprompt-tracker/_next/static/*.js returns JavaScript (not HTML)</li>
-     *   <li>/aiprompt-tracker/*.css returns CSS (not HTML)</li>
-     *   <li>Other static assets load correctly</li>
-     * </ul>
+     * <p><b>Critical:</b> This is now REQUIRED because UiRedirectController uses
+     * explicit path mappings (not catch-all /**). Resource handlers are checked
+     * BEFORE controller mappings for paths NOT matched by controllers.
      *
-     * <p>By explicitly registering these resource handlers, we ensure Spring MVC
-     * checks them BEFORE falling through to the controller's /** pattern.
-     */
-    /**
-     * CRITICAL: This doesn't work as expected because Spring MVC checks
-     * @RequestMapping in controllers BEFORE resource handlers.
+     * <p>This configuration maps URL paths to classpath resources:
+     * - URL: /aiprompt-tracker/_next/** → classpath:/META-INF/resources/aiprompt-tracker/_next/
+     * - URL: /aiprompt-tracker/*.{js,css,etc.} → classpath:/META-INF/resources/aiprompt-tracker/
      *
-     * The real solution is to change the controller mapping to NOT use catch-all /**,
-     * or use a HandlerInterceptor that runs before the controller.
+     * <p>Without this, Spring Boot's default resource handler only serves from:
+     * - classpath:/META-INF/resources/ (root level only)
+     * - classpath:/resources/
+     * - classpath:/static/
+     * - classpath:/public/
      *
-     * For now, keeping this as documentation of what was attempted.
+     * Since our React files are nested under /aiprompt-tracker/, we must explicitly
+     * configure this mapping.
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // NOTE: These resource handlers are registered but checked AFTER @GetMapping in controllers
-        // This means UiRedirectController's /** still matches first
-        // The real fix needs to be in the controller or using a different approach
-
+        // _next/** - Next.js static output (JS chunks, CSS, fonts, etc.)
         registry.addResourceHandler("/aiprompt-tracker/_next/**")
                 .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/_next/");
 
+        // Root-level static files (index.html, favicon.ico, etc.)
         registry.addResourceHandler("/aiprompt-tracker/*.js")
                 .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
 
@@ -210,7 +205,10 @@ public class ApiAutoConfiguration implements WebMvcConfigurer {
         registry.addResourceHandler("/aiprompt-tracker/*.json")
                 .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
 
-        log.info("Configured resource handlers for /aiprompt-tracker (Note: Checked after controller mappings)");
+        registry.addResourceHandler("/aiprompt-tracker/*.html")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        log.info("Configured resource handlers for /aiprompt-tracker static assets");
     }
 
     /**
