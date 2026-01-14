@@ -239,99 +239,143 @@ val copyFrontend by tasks.registering(Copy::class) {
 }
 
 /**
- * Verify JAR contains React dashboard artifacts
+ * Verify JAR contains React dashboard artifacts (lenient mode)
  *
  * This task verifies that the built JAR includes the embedded React dashboard.
- * Used in CI to ensure the release JAR has all required frontend files.
+ * Missing React files will produce warnings but won't fail the build.
  *
  * Usage: ./gradlew :tracker-starter:verifyJarContents
  */
 val verifyJarContents by tasks.registering {
     group = "verification"
-    description = "Verify JAR contains embedded React dashboard"
+    description = "Verify JAR contains embedded React dashboard (warnings only)"
 
     dependsOn(tasks.jar)
 
     doLast {
-        val jarFile = tasks.jar.get().archiveFile.get().asFile
-
-        if (!jarFile.exists()) {
-            throw GradleException("JAR file not found: ${jarFile.absolutePath}")
-        }
-
-        logger.lifecycle("")
-        logger.lifecycle("════════════════════════════════════════════════════════════")
-        logger.lifecycle("  Verifying JAR Contents")
-        logger.lifecycle("════════════════════════════════════════════════════════════")
-        logger.lifecycle("JAR: ${jarFile.name}")
-        logger.lifecycle("")
-
-        val jarEntries = mutableListOf<String>()
-        ZipFile(jarFile).use { zipFile ->
-            val entries = zipFile.entries()
-            while (entries.hasMoreElements()) {
-                val entry = entries.nextElement()
-                jarEntries.add(entry.name)
-            }
-        }
-
-        // Required files for React dashboard
-        val requiredFiles = listOf(
-            "META-INF/resources/aiprompt-tracker/index.html",
-            "META-INF/resources/aiprompt-tracker/_next/"
-        )
-
-        // Optional file (vanilla fallback - always present)
-        val fallbackFile = "META-INF/resources/aiprompt-tracker/dashboard-mvp.html"
-
-        val missingFiles = mutableListOf<String>()
-        val foundFiles = mutableListOf<String>()
-
-        // Check React dashboard files
-        for (required in requiredFiles) {
-            val found = jarEntries.any { it.startsWith(required) }
-            if (found) {
-                foundFiles.add(required)
-            } else {
-                missingFiles.add(required)
-            }
-        }
-
-        // Check fallback file
-        val hasFallback = jarEntries.contains(fallbackFile)
-        if (hasFallback) {
-            foundFiles.add(fallbackFile)
-        }
-
-        // Report findings
-        if (foundFiles.isNotEmpty()) {
-            logger.lifecycle("✅ Found embedded UI files:")
-            foundFiles.forEach { logger.lifecycle("   - $it") }
-        }
-
-        if (missingFiles.isNotEmpty()) {
-            logger.warn("")
-            logger.warn("⚠️  Missing React dashboard files:")
-            missingFiles.forEach { logger.warn("   - $it") }
-            logger.warn("")
-            logger.warn("   The JAR will fall back to vanilla dashboard (dashboard-mvp.html)")
-            logger.warn("   To include React dashboard:")
-            logger.warn("   1. cd frontend && npm ci && npm run build")
-            logger.warn("   2. ./gradlew :tracker-starter:copyFrontend")
-            logger.warn("   3. ./gradlew :tracker-starter:build")
-        } else {
-            logger.lifecycle("")
-            logger.lifecycle("✅ JAR verification passed: React dashboard is embedded")
-        }
-
-        logger.lifecycle("════════════════════════════════════════════════════════════")
-        logger.lifecycle("")
-
-        // Count files in each category
-        val uiFiles = jarEntries.count { it.startsWith("META-INF/resources/aiprompt-tracker/") }
-        logger.lifecycle("Total UI files in JAR: $uiFiles")
-        logger.lifecycle("")
+        verifyJarContentsImpl(strict = false)
     }
+}
+
+/**
+ * Verify JAR contains React dashboard artifacts (strict mode for CI)
+ *
+ * This task verifies that the built JAR includes the embedded React dashboard.
+ * Missing React files will cause the build to FAIL (required for CI/release builds).
+ *
+ * Usage: ./gradlew :tracker-starter:verifyJarContentsStrict
+ */
+val verifyJarContentsStrict by tasks.registering {
+    group = "verification"
+    description = "Verify JAR contains embedded React dashboard (strict - fails on missing files)"
+
+    dependsOn(tasks.jar)
+
+    doLast {
+        verifyJarContentsImpl(strict = true)
+    }
+}
+
+/**
+ * Common implementation for JAR verification
+ *
+ * @param strict If true, throws GradleException when React files are missing.
+ *               If false, only logs warnings.
+ */
+fun verifyJarContentsImpl(strict: Boolean) {
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    if (!jarFile.exists()) {
+        throw GradleException("JAR file not found: ${jarFile.absolutePath}")
+    }
+
+    logger.lifecycle("")
+    logger.lifecycle("════════════════════════════════════════════════════════════")
+    logger.lifecycle("  Verifying JAR Contents ${if (strict) "(STRICT MODE)" else "(Lenient)"}")
+    logger.lifecycle("════════════════════════════════════════════════════════════")
+    logger.lifecycle("JAR: ${jarFile.name}")
+    logger.lifecycle("")
+
+    val jarEntries = mutableListOf<String>()
+    ZipFile(jarFile).use { zipFile ->
+        val entries = zipFile.entries()
+        while (entries.hasMoreElements()) {
+            val entry = entries.nextElement()
+            jarEntries.add(entry.name)
+        }
+    }
+
+    // Required files for React dashboard
+    val requiredFiles = listOf(
+        "META-INF/resources/aiprompt-tracker/index.html",
+        "META-INF/resources/aiprompt-tracker/_next/"
+    )
+
+    // Optional file (vanilla fallback - always present)
+    val fallbackFile = "META-INF/resources/aiprompt-tracker/dashboard-mvp.html"
+
+    val missingFiles = mutableListOf<String>()
+    val foundFiles = mutableListOf<String>()
+
+    // Check React dashboard files
+    for (required in requiredFiles) {
+        val found = jarEntries.any { it.startsWith(required) }
+        if (found) {
+            foundFiles.add(required)
+        } else {
+            missingFiles.add(required)
+        }
+    }
+
+    // Check fallback file
+    val hasFallback = jarEntries.contains(fallbackFile)
+    if (hasFallback) {
+        foundFiles.add(fallbackFile)
+    }
+
+    // Report findings
+    if (foundFiles.isNotEmpty()) {
+        logger.lifecycle("✅ Found embedded UI files:")
+        foundFiles.forEach { logger.lifecycle("   - $it") }
+    }
+
+    if (missingFiles.isNotEmpty()) {
+        val message = buildString {
+            appendLine("")
+            appendLine("❌ Missing React dashboard files:")
+            missingFiles.forEach { appendLine("   - $it") }
+            appendLine("")
+            appendLine("   The JAR will fall back to vanilla dashboard (dashboard-mvp.html)")
+            appendLine("   To include React dashboard:")
+            appendLine("   1. cd frontend && npm ci && npm run build")
+            appendLine("   2. ./gradlew :tracker-starter:copyFrontend")
+            appendLine("   3. ./gradlew :tracker-starter:build")
+            appendLine("")
+        }
+
+        if (strict) {
+            logger.error(message)
+            logger.lifecycle("════════════════════════════════════════════════════════════")
+            logger.lifecycle("")
+            throw GradleException(
+                "JAR verification FAILED: React dashboard is missing from JAR. " +
+                "This is required for CI/release builds. See error details above."
+            )
+        } else {
+            logger.warn(message)
+        }
+    } else {
+        logger.lifecycle("")
+        logger.lifecycle("✅ JAR verification passed: React dashboard is embedded")
+    }
+
+    logger.lifecycle("════════════════════════════════════════════════════════════")
+    logger.lifecycle("")
+
+    // Count files in each category
+    val uiFiles = jarEntries.count { it.startsWith("META-INF/resources/aiprompt-tracker/") }
+    logger.lifecycle("Total UI files in JAR: $uiFiles")
+    logger.lifecycle("")
 }
 
 /**
