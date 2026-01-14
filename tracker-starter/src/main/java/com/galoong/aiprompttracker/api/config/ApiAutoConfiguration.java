@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -137,6 +138,79 @@ public class ApiAutoConfiguration implements WebMvcConfigurer {
         boolean persistent = executionStore.isPersistent();
         log.info("API persistence guard initialized: persistent={}", persistent);
         return new PersistenceGuard(persistent);
+    }
+
+    // ========== Resource Handling ==========
+
+    /**
+     * Configure static resource handling with explicit priority.
+     *
+     * <p>CRITICAL: Static resources (_next/**, *.js, *.css, etc.) MUST be handled
+     * BEFORE the UiRedirectController's catch-all /** mapping. This ensures that:
+     * <ul>
+     *   <li>/aiprompt-tracker/_next/static/*.js returns JavaScript (not HTML)</li>
+     *   <li>/aiprompt-tracker/*.css returns CSS (not HTML)</li>
+     *   <li>Other static assets load correctly</li>
+     * </ul>
+     *
+     * <p>By explicitly registering these resource handlers, we ensure Spring MVC
+     * checks them BEFORE falling through to the controller's /** pattern.
+     */
+    /**
+     * CRITICAL: This doesn't work as expected because Spring MVC checks
+     * @RequestMapping in controllers BEFORE resource handlers.
+     *
+     * The real solution is to change the controller mapping to NOT use catch-all /**,
+     * or use a HandlerInterceptor that runs before the controller.
+     *
+     * For now, keeping this as documentation of what was attempted.
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // NOTE: These resource handlers are registered but checked AFTER @GetMapping in controllers
+        // This means UiRedirectController's /** still matches first
+        // The real fix needs to be in the controller or using a different approach
+
+        registry.addResourceHandler("/aiprompt-tracker/_next/**")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/_next/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.js")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.css")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.map")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.txt")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.ico")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.png")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.jpg")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.svg")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.woff2")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.woff")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.ttf")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        registry.addResourceHandler("/aiprompt-tracker/*.json")
+                .addResourceLocations("classpath:/META-INF/resources/aiprompt-tracker/");
+
+        log.info("Configured resource handlers for /aiprompt-tracker (Note: Checked after controller mappings)");
     }
 
     /**

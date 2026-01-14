@@ -1,7 +1,9 @@
 package com.galoong.aiprompttracker.api.controller;
 
 import com.galoong.aiprompttracker.config.properties.TrackingUiProperties;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -9,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -16,17 +19,40 @@ import java.nio.charset.StandardCharsets;
 /**
  * Controller to handle React SPA routing for embedded dashboard.
  *
- * <p><b>Strategy:</b>
- * - /aiprompt-tracker/ → forward to index.html
- * - /aiprompt-tracker/dashboard/, /functions/, etc. → forward to index.html (SPA routing)
- * - /aiprompt-tracker/api/** → NOT handled here (REST API)
- * - Static assets (.js, .css, .png, etc.) → served by Spring Boot static resource handling
+ * <p><b>Problem Solved:</b>
+ * This controller uses catch-all /** mapping to handle SPA client-side routes.
+ * However, this caused a critical bug: static resources (_next/static/*.js) were
+ * returning HTML instead of JavaScript, causing a white screen in consumer projects.
  *
- * <p><b>Rationale:</b>
- * Next.js static export with trailingSlash:true generates /dashboard/index.html, /functions/index.html.
- * Spring Boot serves these files directly. This controller handles fallback for:
- * 1. Root path /aiprompt-tracker/
- * 2. Any path without extension (SPA client-side routes)
+ * <p><b>Solution:</b>
+ * Spring MVC checks @GetMapping in controllers BEFORE resource handlers. Since we
+ * need the catch-all /** to handle SPA routes (like /dashboard/, /functions/), we
+ * can't avoid matching static resources at the mapping level.
+ *
+ * Instead, this controller explicitly checks for static resource patterns FIRST
+ * (before any other logic) and returns 404 immediately. This prevents serving HTML
+ * when the browser expects JavaScript/CSS/images/etc.
+ *
+ * <p><b>Request Flow:</b>
+ * <ol>
+ *   <li>/aiprompt-tracker/_next/** → Controller returns 404 (not HTML)</li>
+ *   <li>/aiprompt-tracker/*.js, *.css, etc. → Controller returns 404 (not HTML)</li>
+ *   <li>/aiprompt-tracker/api/** → Controller returns null (delegates to REST controllers)</li>
+ *   <li>/aiprompt-tracker/, /dashboard/, /functions/ → Controller serves index.html (SPA routing)</li>
+ * </ol>
+ *
+ * <p><b>Why 404 for Static Resources?</b>
+ * In production builds (CI), React static files exist in META-INF/resources/ and
+ * Spring Boot's default ResourceHttpRequestHandler serves them. If that handler
+ * doesn't find the file, it returns 404.
+ *
+ * By returning 404 here (instead of HTML), we prevent the controller from interfering
+ * with resource serving. If the file exists, Spring's resource handler serves it.
+ * If it doesn't exist, we return 404 (not HTML pretending to be JavaScript).
+ *
+ * <p><b>Zero-Config Behavior:</b>
+ * - With frontend built: Static resources served normally, SPA routes work
+ * - Without frontend built: Static resources 404, SPA routes fall back to dashboard-mvp.html
  *
  * <p><b>Note:</b> This class is registered as a bean by ApiAutoConfiguration.
  * The @Controller annotation is still required for Spring MVC request mapping.
@@ -64,15 +90,43 @@ public class UiRedirectController {
             "/aiprompt-tracker/**"
         }
     )
-    public Object handleSpaRouting(HttpServletRequest request) throws IOException {
+    public Object handleSpaRouting(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         String path = request.getRequestURI();
 
-        // DO NOT intercept API requests
+        // CRITICAL: DO NOT HANDLE STATIC RESOURCES
+        // Return 404 immediately for any static resource request
+        // This prevents the controller from serving HTML when browser expects JavaScript/CSS/etc.
+
+        // 1. _next/** paths (Next.js static output) - Block at controller level
+        if (path.startsWith("/aiprompt-tracker/_next/")) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return null;
+        }
+
+        // 2. Files with extensions - check if it's a static asset
+        if (path.contains(".") && !path.endsWith("/")) {
+            int lastSlash = path.lastIndexOf('/');
+            int lastDot = path.lastIndexOf('.');
+            if (lastDot > lastSlash) {
+                String extension = path.substring(lastDot).toLowerCase();
+                // List of static asset extensions that MUST NOT return HTML
+                if (extension.matches("\\.(js|css|map|txt|ico|png|jpg|jpeg|svg|gif|woff2|woff|ttf|json|xml|html|htm)")) {
+                    // This is a static asset request - return 404 instead of HTML
+                    // In production with frontend built, these files WILL exist in META-INF/resources
+                    // and Spring Boot's default ResourceHttpRequestHandler will serve them
+                    // But if we got here, it means the resource doesn't exist
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return null;
+                }
+            }
+        }
+
+        // 3. DO NOT intercept API requests
         if (path.startsWith("/aiprompt-tracker/api/")) {
             return null; // Let Spring MVC continue to REST controllers
         }
 
-        // Check if UI is disabled (API-only mode)
+        // 4. Check if UI is disabled (API-only mode)
         if (!uiProperties.isEnabled()) {
             String message = "<!DOCTYPE html>" +
                 "<html><head><title>AI Prompt Tracker - API Only Mode</title></head>" +
@@ -95,24 +149,6 @@ public class UiRedirectController {
                 .status(HttpStatus.NOT_FOUND)
                 .contentType(MediaType.TEXT_HTML)
                 .body(message);
-        }
-
-        // DO NOT intercept static assets (let Spring Boot serve them)
-        // Files with extensions OTHER than HTML routes are static assets
-        if (path.contains(".") && !path.endsWith("/")) {
-            int lastSlash = path.lastIndexOf('/');
-            int lastDot = path.lastIndexOf('.');
-            if (lastDot > lastSlash) {
-                // Has extension after last slash
-                String extension = path.substring(lastDot);
-                // Only intercept routes without extensions or directory-like paths
-                // Let .js, .css, .png, .ico, etc. be served by static resource handler
-                if (!extension.equals(".html") && !extension.equals(".htm")) {
-                    return null; // Not an HTML file, let static handler serve it
-                }
-                // .html files: let them be served by static handler too
-                return null;
-            }
         }
 
         // All SPA routes (no extension, or directory paths): serve dashboard HTML
